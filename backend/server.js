@@ -22,6 +22,25 @@ app.get("/zones", async (req, res) => {
   }
 });
 
+app.post("/register", async (req, res) => {
+  try {
+    const { first_name, last_name, nickname, email, password } = req.body;
+
+    const result = await pool.query(
+      `INSERT INTO users 
+      (first_name, last_name, nickname, email, password_hash)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *`,
+      [first_name, last_name, nickname, email, password]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error");
+  }
+});
+
 app.listen(3000, () => {
   console.log("Server running on port 3000");
 });
