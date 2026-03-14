@@ -3,6 +3,7 @@ DROP TABLE IF EXISTS template_zones CASCADE;
 DROP TABLE IF EXISTS trainings CASCADE;
 DROP TABLE IF EXISTS training_templates CASCADE;
 DROP TABLE IF EXISTS zones CASCADE;
+DROP TABLE IF EXISTS friendships CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 
 CREATE TABLE users(
@@ -19,10 +20,14 @@ CREATE TABLE users(
 
 CREATE TABLE training_templates(
 	template_id SERIAL PRIMARY KEY,
-	template_name VARCHAR(100) NOT NULL UNIQUE,
+	template_name VARCHAR(100) NOT NULL,
 	description TEXT,
 	total_shots INT NOT NULL CHECK (total_shots >= 0),
-	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	creator_user_id INT,
+	is_public BOOLEAN DEFAULT FALSE,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY (creator_user_id) REFERENCES users(user_id) ON DELETE SET NULL,
+	UNIQUE (creator_user_id, template_name)
 );
 
 CREATE TABLE zones(
@@ -57,7 +62,8 @@ CREATE TABLE shots(
 	notes TEXT,
 	shot_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	FOREIGN KEY (training_id) REFERENCES trainings(training_id) ON DELETE CASCADE,
-	FOREIGN KEY (zone_id) REFERENCES zones(zone_id) ON DELETE RESTRICT
+	FOREIGN KEY (zone_id) REFERENCES zones(zone_id) ON DELETE RESTRICT,
+	UNIQUE (training_id, shot_order)
 );
 
 CREATE TABLE template_zones(
@@ -70,9 +76,26 @@ CREATE TABLE template_zones(
 	UNIQUE (template_id, zone_id)
 );
 
+CREATE TABLE friendships(
+	friendship_id SERIAL PRIMARY KEY,
+	user_id INT NOT NULL,
+	friend_id INT NOT NULL,
+	status VARCHAR(20) NOT NULL CHECK (status IN ('pending','accepted','rejected')),
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+	FOREIGN KEY (friend_id) REFERENCES users(user_id) ON DELETE CASCADE,
+	CHECK (user_id <> friend_id),
+	UNIQUE (user_id, friend_id)
+);
+
 CREATE INDEX idx_trainings_user ON trainings(user_id);
 CREATE INDEX idx_trainings_template ON trainings(template_id);
+
 CREATE INDEX idx_shots_training ON shots(training_id);
 CREATE INDEX idx_shots_zone ON shots(zone_id);
 CREATE INDEX idx_shots_training_zone ON shots(training_id, zone_id);
+
 CREATE INDEX idx_template_zones_template ON template_zones(template_id);
+
+CREATE INDEX idx_friendships_user ON friendships(user_id);
+CREATE INDEX idx_friendships_friend ON friendships(friend_id);
