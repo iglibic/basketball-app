@@ -75,6 +75,29 @@ app.get("/trainings/:user_id", async (req, res) => {
   }
 });
 
+app.post("/trainings", async (req, res) => {
+  try {
+    const { user_id, training_name, template_id } = req.body;
+
+    if (!user_id || !training_name) {
+      return res.status(400).send("All fields are required");
+    }
+
+    const newTraining = await pool.query(
+      `INSERT INTO trainings 
+      (user_id, training_name, template_id)
+      VALUES ($1, $2, $3)
+      RETURNING *`,
+      [user_id, training_name, template_id]
+    );
+
+  res.json(newTraining.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error");
+  }
+});
+
 app.listen(3000, () => {
   console.log("Server running on port 3000");
 });
