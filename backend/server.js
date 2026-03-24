@@ -147,3 +147,21 @@ app.post("/login", async (req, res) => {
 app.listen(3000, () => {
   console.log("Server running on port 3000...");
 });
+
+function authMiddleware(req, res, next) {
+  const token = req.headers.authorization && req.headers.authorization.split(" ")[1]; 
+  if (!token) {
+    return res.status(401).send("No token, authorization denied!");
+  }
+
+  try{
+    const decoded = jwt.verify(token, "secret123");
+
+    req.user = decoded;
+
+    next();
+  } catch (err) {
+    console.error(err);
+    res.status(403).send("Invalid token!");
+  }
+}
