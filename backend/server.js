@@ -1,7 +1,7 @@
 const express = require("express");
 const pool = require("./db");
 const bcrypt = require("bcrypt");
-
+const jwt = require("jsonwebtoken");
 
 const app = express();
 
@@ -121,13 +121,23 @@ app.post("/login", async (req, res) => {
     if (!isMatch) {
       return res.status(400).send("Invalid email or password!");
     }
+
+    const token = jwt.sign(
+      { user_id: user.user_id },
+      "secret123",
+      { expiresIn: "1h" }
+    );
+
     res.json({
-      user_id: user.user_id,
+      token,
+      user: {
       first_name: user.first_name,
       last_name: user.last_name,
       nickname: user.nickname,
       email: user.email
+      }
     });
+
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error!");
