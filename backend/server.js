@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const pool = require("./db");
 const bcrypt = require("bcrypt");
@@ -54,9 +56,9 @@ app.post("/register", async (req, res) => {
   }
 });
 
-app.get("/trainings/:user_id", async (req, res) => {
+app.get("/trainings", authMiddleware, async (req, res) => {
   try {
-    const userId = parseInt(req.params.user_id);
+    const userId = req.user.user_id;
 
     if (isNaN(userId)) {
       return res.status(400).send("Invalid user_id!");
@@ -77,7 +79,8 @@ app.get("/trainings/:user_id", async (req, res) => {
 
 app.post("/trainings", async (req, res) => {
   try {
-    const { user_id, training_name, template_id } = req.body;
+    const user_id = req.user.user_id;
+    const { training_name, template_id } = req.body;
 
     if (!user_id || !training_name) {
       return res.status(400).send("All fields are required!");
@@ -91,7 +94,7 @@ app.post("/trainings", async (req, res) => {
       [user_id, training_name, template_id]
     );
 
-  res.json(newTraining.rows[0]);
+    res.json(newTraining.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error!");
@@ -119,22 +122,22 @@ app.post("/login", async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
-      return res.status(400).send("Invalid email or password!");
+      return res.status(401).send("Invalid email or password!");
     }
 
     const token = jwt.sign(
       { user_id: user.user_id },
-      "secret123",
+      process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
 
     res.json({
       token,
       user: {
-      first_name: user.first_name,
-      last_name: user.last_name,
-      nickname: user.nickname,
-      email: user.email
+        first_name: user.first_name,
+        last_name: user.last_name,
+        nickname: user.nickname,
+        email: user.email
       }
     });
 
@@ -149,13 +152,13 @@ app.listen(3000, () => {
 });
 
 function authMiddleware(req, res, next) {
-  const token = req.headers.authorization && req.headers.authorization.split(" ")[1]; 
+  const token = req.headers.authorization && req.headers.authorization.split(" ")[1];
   if (!token) {
     return res.status(401).send("No token, authorization denied!");
   }
 
-  try{
-    const decoded = jwt.verify(token, "secret123");
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     req.user = decoded;
 
