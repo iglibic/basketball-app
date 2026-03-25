@@ -9,6 +9,16 @@ const app = express();
 
 app.use(express.json());
 
+console.log("DB_USER:", process.env.DB_USER);
+console.log("DB_HOST:", process.env.DB_HOST);
+console.log("DB_PORT:", process.env.DB_PORT);
+console.log("DB_NAME:", process.env.DB_NAME);
+console.log("DB_PASSWORD exists:", !!process.env.DB_PASSWORD);
+
+pool.query("SELECT NOW()")
+  .then(() => console.log("Database connected successfully"))
+  .catch(err => console.error("Database connection error:", err));
+
 app.get("/", (req, res) => {
   res.send("Basketball App API running...");
 });
@@ -44,7 +54,17 @@ app.post("/register", async (req, res) => {
       [first_name, last_name, nickname, email, hashedPassword]
     );
 
-    res.json(newUser.rows[0]);
+    const user = newUser.rows[0];
+
+    res.json({
+      user_id: user.user_id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      nickname: user.nickname,
+      email: user.email,
+      is_verified: user.is_verified,
+      created_at: user.created_at
+    });
   } catch (err) {
     console.error(err);
 
