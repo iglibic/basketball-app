@@ -403,6 +403,36 @@ app.get("/trainings/:trainingId/zone-stats", authMiddleware, async (req, res) =>
   }
 });
 
+app.delete("/shots/:shotId", authMiddleware, async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+    const { shotId } = req.params;
+
+    const shotCheck = await pool.query(
+      `SELECT s.* 
+      FROM shots s
+      JOIN trainings t ON s.training_id = t.training_id
+      WHERE s.shot_id = $1 AND t.user_id = $2`,
+      [shotId, user_id]
+    );
+
+    if (shotCheck.rows.length === 0) {
+      return res.status(404).send("Shot not found!");
+    }
+
+    const deletedShot = await pool.query(
+      "DELETE FROM shots WHERE shot_id = $1 RETURNING *",
+      [shotId]
+    );
+
+    res.json(deletedShot.rows[0]);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error!");
+  }
+});
+
 function authMiddleware(req, res, next) {
   const token = req.headers.authorization && req.headers.authorization.split(" ")[1];
 
