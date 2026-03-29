@@ -213,7 +213,7 @@ app.post("/shots", authMiddleware, async (req, res) => {
   }
 });
 
-app.get("/trainings/:training_Id/shots", authMiddleware, async (req, res) => {
+app.get("/trainings/:trainingId/shots", authMiddleware, async (req, res) => {
   try {
 
     const user_id = req.user.user_id;
@@ -244,25 +244,6 @@ app.get("/trainings/:training_Id/shots", authMiddleware, async (req, res) => {
     res.status(500).send("Server error!");
   }
 });
-
-function authMiddleware(req, res, next) {
-  const token = req.headers.authorization && req.headers.authorization.split(" ")[1];
-
-  if (!token) {
-    return res.status(401).send("No token, authorization denied!");
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    req.user = decoded;
-
-    next();
-  } catch (err) {
-    console.error(err);
-    res.status(403).send("Invalid token!");
-  }
-}
 
 app.put("/trainings/:trainingId/finish", authMiddleware, async (req, res) => {
   try {
@@ -297,6 +278,149 @@ app.put("/trainings/:trainingId/finish", authMiddleware, async (req, res) => {
     res.status(500).send("Server error!");
   }
 });
+
+app.get("/trainings/:trainingId/stats", authMiddleware, async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+    const { trainingId } = req.params;
+
+    const trainingCheck = await pool.query(
+      "SELECT * FROM trainings WHERE training_id = $1 AND user_id = $2",
+      [trainingId, user_id]
+    );
+
+    if (trainingCheck.rows.length === 0) {
+      return res.status(404).send("Training not found!");
+    }
+
+    const stats = await pool.query(
+      `SELECT
+      training_id,
+      COUNT(*) AS total_shots,
+      COUNT(*) FILTER (WHERE made = true) AS made_shots,
+      COUNT(*) FILTER (WHERE made = false) AS missed_shots
+      FROM shots
+      WHERE training_id = $1
+      GROUP BY training_id`,
+      [trainingId]
+    );
+
+    if (stats.rows.length === 0) {
+      return res.json({
+        training_id: Number(trainingId),
+        total_shots: 0,
+        made_shots: 0,
+        missed_shots: 0,
+        percentage: 0
+      });
+    }
+
+    const statsData = stats.rows[0];
+
+    const total_shots = Number(statsData.total_shots);
+    const made_shots = Number(statsData.made_shots);
+    const missed_shots = Number(statsData.missed_shots);
+
+    const percentage =
+      total_shots === 0 ? 0 : Math.round((made_shots / total_shots) * 100);
+
+    res.json({
+      training_id: Number(trainingId),
+      total_shots,
+      made_shots,
+      missed_shots,
+      percentage
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error!");
+  }
+});
+
+app.get("/trainings/:trainingId/zone-stats", authMiddleware, async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+    const { trainingId } = req.params;
+
+    const trainingCheck = await pool.query(
+      "SELECT * FROM trainings WHERE training_id = $1 AND user_id = $2",
+      [trainingId, user_id]
+    );
+
+    if (trainingCheck.rows.length === 0) {
+      return res.status(404).send("Training not found!");
+    }
+
+    const stats = await pool.query(
+      `SELECT
+        z.zone_id,
+        z.zone_name,
+        COUNT(*) AS total_shots,
+        COUNT(*) FILTER (WHERE s.made = true) AS made_shots,
+        COUNT(*) FILTER (WHERE s.made = false) AS missed_shots
+       FROM shots s
+       JOIN zones z ON s.zone_id = z.zone_id
+       WHERE s.training_id = $1
+       GROUP BY z.zone_id, z.zone_name, z.display_order
+       ORDER BY z.display_order`,
+      [trainingId]
+    );
+
+    if (stats.rows.length === 0) {
+      return res.json({
+        training_id: Number(trainingId),
+        zones: []
+      });
+    }
+
+    const zoneStats = stats.rows.map((row) => {
+      const total_shots = Number(row.total_shots);
+      const made_shots = Number(row.made_shots);
+      const missed_shots = Number(row.missed_shots);
+
+      const percentage =
+        total_shots === 0 ? 0 : Math.round((made_shots / total_shots) * 100);
+
+      return {
+        zone_id: row.zone_id,
+        zone_name: row.zone_name,
+        total_shots,
+        made_shots,
+        missed_shots,
+        percentage
+      };
+    });
+
+    res.json({
+      training_id: Number(trainingId),
+      zones: zoneStats
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error!");
+  }
+});
+
+function authMiddleware(req, res, next) {
+  const token = req.headers.authorization && req.headers.authorization.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).send("No token, authorization denied!");
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    req.user = decoded;
+
+    next();
+  } catch (err) {
+    console.error(err);
+    res.status(403).send("Invalid token!");
+  }
+};
 
 app.listen(3000, () => {
   console.log("Server running on port 3000...");
