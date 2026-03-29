@@ -433,6 +433,45 @@ app.delete("/shots/:shotId", authMiddleware, async (req, res) => {
   }
 });
 
+app.put("/shots/:shotId", authMiddleware, async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+    const { shotId } = req.params;
+    const { made } = req.body;  
+    
+    if (made === undefined) {
+      return res.status(400).send("Made status is required!");
+    } 
+
+    if (typeof made !== "boolean") {
+      return res.status(400).send("Made status must be a boolean!");
+    }
+
+    const shotCheck = await pool.query(
+      `SELECT s.* 
+      FROM shots s
+      JOIN trainings t ON s.training_id = t.training_id
+      WHERE s.shot_id = $1 AND t.user_id = $2`,
+      [shotId, user_id]
+    );
+
+    if (shotCheck.rows.length === 0) {
+      return res.status(404).send("Shot not found!");
+    }
+
+    const updatedShot = await pool.query(
+      "UPDATE shots SET made = $1 WHERE shot_id = $2 RETURNING *",
+      [made, shotId]
+    );
+
+    res.json(updatedShot.rows[0]);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error!");
+  }
+});
+
 function authMiddleware(req, res, next) {
   const token = req.headers.authorization && req.headers.authorization.split(" ")[1];
 
