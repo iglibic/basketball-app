@@ -231,7 +231,7 @@ app.get("/trainings/:trainingId/shots", authMiddleware, async (req, res) => {
     }
 
     const shots = await pool.query(
-    `SELECT s.*, z.zone_name
+      `SELECT s.*, z.zone_name
     FROM shots s
     JOIN zones z ON s.zone_id = z.zone_id
     WHERE s.training_id = $1
@@ -247,7 +247,7 @@ app.get("/trainings/:trainingId/shots", authMiddleware, async (req, res) => {
   }
 });
 
-app.put("/trainings/:trainingId/finish", authMiddleware, async (req, res) => { 
+app.put("/trainings/:trainingId/finish", authMiddleware, async (req, res) => {
   try {
     const user_id = req.user.user_id;
     const { trainingId } = req.params;
@@ -489,6 +489,42 @@ app.get("/templates", authMiddleware, async (req, res) => {
 
   } catch (err) {
     console.error(err);
+    res.status(500).send("Server error!");
+  }
+});
+
+app.post("/templates", authMiddleware, async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+    const { template_name, total_shots, is_public } = req.body;
+
+    if (!template_name || total_shots === undefined || is_public === undefined) {
+      return res.status(400).send("All fields are required!");
+    }
+
+    if (typeof total_shots !== "number" || total_shots >= 0) {
+      return res.status(400).send("Total shots must be a positive number!");
+    }
+
+    if (typeof is_public !== "boolean") {
+      return res.status(400).send("is_public must be a boolean!");
+    }
+
+    const newTemplate = await pool.query(
+      `INSERT INTO training_templates 
+      (creator_user_id, template_name, total_shots, is_public)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *`,
+      [user_id, template_name, total_shots, is_public]
+    );
+
+    res.json(newTemplate.rows[0]);
+  } catch (err) {
+    console.error(err);
+
+    if (err.code === "23505") {
+      return res.status(400).send("Template with this name already exists!");
+    }
     res.status(500).send("Server error!");
   }
 });
