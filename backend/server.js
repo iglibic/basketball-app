@@ -26,7 +26,9 @@ app.get("/", (req, res) => {
 app.get("/zones", async (req, res) => {
   try {
     const zones = await pool.query(
-      "SELECT * FROM zones ORDER BY display_order"
+      `SELECT * 
+      FROM zones 
+      ORDER BY display_order`
     );
 
     res.json(zones.rows);
@@ -229,7 +231,7 @@ app.get("/trainings/:trainingId/shots", authMiddleware, async (req, res) => {
     }
 
     const shots = await pool.query(
-      `SELECT s.*, z.zone_name
+    `SELECT s.*, z.zone_name
     FROM shots s
     JOIN zones z ON s.zone_id = z.zone_id
     WHERE s.training_id = $1
@@ -245,7 +247,7 @@ app.get("/trainings/:trainingId/shots", authMiddleware, async (req, res) => {
   }
 });
 
-app.put("/trainings/:trainingId/finish", authMiddleware, async (req, res) => {
+app.put("/trainings/:trainingId/finish", authMiddleware, async (req, res) => { 
   try {
     const user_id = req.user.user_id;
     const { trainingId } = req.params;
@@ -437,11 +439,11 @@ app.put("/shots/:shotId", authMiddleware, async (req, res) => {
   try {
     const user_id = req.user.user_id;
     const { shotId } = req.params;
-    const { made } = req.body;  
-    
+    const { made } = req.body;
+
     if (made === undefined) {
       return res.status(400).send("Made status is required!");
-    } 
+    }
 
     if (typeof made !== "boolean") {
       return res.status(400).send("Made status must be a boolean!");
@@ -465,6 +467,25 @@ app.put("/shots/:shotId", authMiddleware, async (req, res) => {
     );
 
     res.json(updatedShot.rows[0]);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error!");
+  }
+});
+
+app.get("/templates", authMiddleware, async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+
+    const templates = await pool.query(
+      `SELECT * FROM training_templates
+       WHERE is_public = true OR creator_user_id = $1
+       ORDER BY created_at DESC`,
+      [user_id]
+    );
+
+    res.json(templates.rows);
 
   } catch (err) {
     console.error(err);
