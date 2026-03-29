@@ -165,25 +165,6 @@ app.post("/trainings", authMiddleware, async (req, res) => {
   }
 });
 
-function authMiddleware(req, res, next) {
-  const token = req.headers.authorization && req.headers.authorization.split(" ")[1];
-
-  if (!token) {
-    return res.status(401).send("No token, authorization denied!");
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    req.user = decoded;
-
-    next();
-  } catch (err) {
-    console.error(err);
-    res.status(403).send("Invalid token!");
-  }
-}
-
 app.post("/shots", authMiddleware, async (req, res) => {
   try {
     const user_id = req.user.user_id;
@@ -231,6 +212,57 @@ app.post("/shots", authMiddleware, async (req, res) => {
     res.status(500).send("Server error!");
   }
 });
+
+app.get("/trainings/:training_Id/shots", authMiddleware, async (req, res) => {
+  try {
+
+    const user_id = req.user.user_id;
+    const { training_Id } = req.params;
+
+    const trainingCheck = await pool.query(
+      "SELECT * FROM trainings WHERE training_id = $1 AND user_id = $2",
+      [training_Id, user_id]
+    );
+
+    if (trainingCheck.rows.length === 0) {
+      return res.status(404).send("Training not found!");
+    }
+
+    const shots = await pool.query(
+      `SELECT s.*, z.zone_name
+    FROM shots s
+    JOIN zones z ON s.zone_id = z.zone_id
+    WHERE s.training_id = $1
+    ORDER BY s.shot_order ASC, s.shot_time ASC`,
+      [training_Id]
+    );
+
+    res.json(shots.rows);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error!");
+  }
+});
+
+function authMiddleware(req, res, next) {
+  const token = req.headers.authorization && req.headers.authorization.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).send("No token, authorization denied!");
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    req.user = decoded;
+
+    next();
+  } catch (err) {
+    console.error(err);
+    res.status(403).send("Invalid token!");
+  }
+}
 
 app.listen(3000, () => {
   console.log("Server running on port 3000...");
