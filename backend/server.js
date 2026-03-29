@@ -264,6 +264,40 @@ function authMiddleware(req, res, next) {
   }
 }
 
+app.put("/trainings/:trainingId/finish", authMiddleware, async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+    const { trainingId } = req.params;
+
+    const trainingCheck = await pool.query(
+      "SELECT * FROM trainings WHERE training_id = $1 AND user_id = $2",
+      [trainingId, user_id]
+    );
+
+    if (trainingCheck.rows.length === 0) {
+      return res.status(404).send("Training not found!");
+    }
+
+    if (trainingCheck.rows[0].finished_at) {
+      return res.status(400).send("Training is already finished!");
+    }
+
+    const finishedTraining = await pool.query(
+      `UPDATE trainings 
+      SET finished_at = CURRENT_TIMESTAMP 
+      WHERE training_id = $1 
+      RETURNING *`,
+      [trainingId]
+    );
+
+    res.json(finishedTraining.rows[0]);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error!");
+  }
+});
+
 app.listen(3000, () => {
   console.log("Server running on port 3000...");
 });
