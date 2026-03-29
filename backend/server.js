@@ -503,7 +503,7 @@ app.post("/templates", authMiddleware, async (req, res) => {
     }
 
     if (typeof total_shots !== "number" || total_shots >= 0) {
-      return res.status(400).send("Total shots must be a positive number!");
+      return res.status(400).send("Total shots must be a positive number greater than 0!");
     }
 
     if (typeof is_public !== "boolean") {
@@ -525,6 +525,53 @@ app.post("/templates", authMiddleware, async (req, res) => {
     if (err.code === "23505") {
       return res.status(400).send("Template with this name already exists!");
     }
+    res.status(500).send("Server error!");
+  }
+});
+
+app.post("/templates/:templateId/zones", authMiddleware, async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+    const { templateId } = req.params;
+    const {zone_id, planned_shots } = req.body;
+
+    if(!zone_id || planned_shots === undefined) {
+      return res.status(400).send("Zone ID and planned shots are required!");
+    }
+
+    if(planned_shots <= 0 || typeof planned_shots !== "number") {
+      return res.status(400).send("Planned shots must be a positive number!");
+    }
+    
+    const templateCheck = await pool.query(
+      `SELECT * FROM training_templates 
+       WHERE template_id = $1 AND creator_user_id = $2`,
+      [templateId, user_id]
+    );
+
+    if (templateCheck.rows.length === 0) {
+      return res.status(404).send("Template not found!");
+    }
+
+    const zoneCheck = await pool.query(
+      "SELECT * FROM zones WHERE zone_id = $1",
+      [zone_id]
+    );
+
+    if (zoneCheck.rows.length === 0) {
+      return res.status(404).send("Zone not found!");
+    }
+
+    const newTemplateZone = await pool.query(
+      `INSERT INTO template_zones 
+      (template_id, zone_id, planned_shots)
+      VALUES ($1, $2, $3)
+      RETURNING *`,
+      [templateId, zone_id, planned_shots]
+    );
+    res.json(newTemplateZone.rows[0]);
+  } catch (err) {
+    console.error(err);
     res.status(500).send("Server error!");
   }
 });
