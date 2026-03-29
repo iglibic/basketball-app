@@ -184,6 +184,54 @@ function authMiddleware(req, res, next) {
   }
 }
 
+app.post("/shots", authMiddleware, async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+
+    const { training_id, zone_id, made } = req.body;
+
+    if (!training_id || !zone_id || made === undefined) {
+      return res.status(400).send("Training ID, zone ID and made status are required!");
+    }
+
+    if (typeof made !== "boolean") {
+      return res.status(400).send("Made status must be a boolean!");
+    }
+
+    const trainingCheck = await pool.query(
+      "SELECT * FROM trainings WHERE training_id = $1 AND user_id = $2",
+      [training_id, user_id]
+    );
+
+    if (trainingCheck.rows.length === 0) {
+      return res.status(404).send("Training not found!");
+    }
+
+    const zoneCheck = await pool.query(
+      "SELECT * FROM zones WHERE zone_id = $1",
+      [zone_id]
+    );
+
+    if (zoneCheck.rows.length === 0) {
+      return res.status(404).send("Zone not found!");
+    }
+
+    const newShot = await pool.query(
+      `INSERT INTO shots 
+      (training_id, zone_id, made)
+      VALUES ($1, $2, $3)
+      RETURNING *`,
+      [training_id, zone_id, made]
+    );
+
+    res.json(newShot.rows[0]);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error!");
+  }
+});
+
 app.listen(3000, () => {
   console.log("Server running on port 3000...");
 });
