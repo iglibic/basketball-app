@@ -100,7 +100,7 @@ app.post("/login", async (req, res) => {
     const token = jwt.sign(
       { user_id: user.user_id },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "3h" }
     );
 
     res.json({
@@ -595,6 +595,72 @@ app.get("/templates/:templateId/zones", authMiddleware, async (req, res) => {
     );
 
     res.json(zones.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error!");
+  }
+});
+
+app.get("/global-stats", authMiddleware, async (req, res) => {
+  try {
+
+    const stats = await pool.query(
+      `SELECT
+        z.zone_id,
+        z.zone_name,
+        COUNT(*) AS total_shots,
+        COUNT(*) FILTER (WHERE s.made = true) AS made_shots
+       FROM shots s
+       JOIN zones z
+       ON s.zone_id = z.zone_id
+       GROUP BY z.zone_id, z.zone_name, z.display_order
+       ORDER BY z.display_order`
+    );
+
+    const zones = stats.rows.map((row) => {
+
+      const total_shots = Number(row.total_shots);
+      const made_shots = Number(row.made_shots);
+
+      const percentage =
+        total_shots === 0
+          ? 0
+          : Math.round((made_shots / total_shots) * 100);
+
+      return {
+        zone_id: row.zone_id,
+        zone_name: row.zone_name,
+        total_shots,
+        made_shots,
+        percentage
+      };
+    });
+
+    const overall = await pool.query(
+      `SELECT
+       COUNT(*) AS total_shots,
+       COUNT(*) FILTER (WHERE made = true) AS made_shots
+       FROM shots`
+    );
+
+    const totalShots =
+      Number(overall.rows[0].total_shots);
+
+    const madeShots =
+      Number(overall.rows[0].made_shots);
+
+    const overallPercentage =
+      totalShots === 0
+        ? 0
+        : Math.round(
+            (madeShots / totalShots) * 100
+          );
+
+    res.json({
+      overall_percentage: overallPercentage,
+      zones
+    });
+
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error!");
