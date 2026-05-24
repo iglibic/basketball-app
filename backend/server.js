@@ -9,12 +9,6 @@ const app = express();
 
 app.use(express.json());
 
-console.log("DB_USER:", process.env.DB_USER);
-console.log("DB_HOST:", process.env.DB_HOST);
-console.log("DB_PORT:", process.env.DB_PORT);
-console.log("DB_NAME:", process.env.DB_NAME);
-console.log("DB_PASSWORD exists:", !!process.env.DB_PASSWORD);
-
 pool.query("SELECT NOW()")
   .then(() => console.log("Database connected successfully"))
   .catch(err => console.error("Database connection error:", err));
@@ -41,6 +35,7 @@ app.get("/zones", async (req, res) => {
 app.post("/register", async (req, res) => {
   try {
     const { first_name, last_name, nickname, email, password } = req.body;
+
 
     if (!first_name || !last_name || !nickname || !email || !password) {
       return res.status(400).send("All fields are required!");
@@ -173,7 +168,7 @@ app.post("/shots", authMiddleware, async (req, res) => {
 
     const { training_id, zone_id, made } = req.body;
 
-    if (!training_id || !zone_id || made === undefined) {
+    if (training_id === undefined || zone_id === undefined || made === undefined) {
       return res.status(400).send("Training ID, zone ID and made status are required!");
     }
 
@@ -219,11 +214,11 @@ app.get("/trainings/:trainingId/shots", authMiddleware, async (req, res) => {
   try {
 
     const user_id = req.user.user_id;
-    const { training_Id } = req.params;
+    const { trainingId } = req.params;
 
     const trainingCheck = await pool.query(
       "SELECT * FROM trainings WHERE training_id = $1 AND user_id = $2",
-      [training_Id, user_id]
+      [trainingId, user_id]
     );
 
     if (trainingCheck.rows.length === 0) {
@@ -236,7 +231,7 @@ app.get("/trainings/:trainingId/shots", authMiddleware, async (req, res) => {
     JOIN zones z ON s.zone_id = z.zone_id
     WHERE s.training_id = $1
     ORDER BY s.shot_order ASC, s.shot_time ASC`,
-      [training_Id]
+      [trainingId]
     );
 
     res.json(shots.rows);
@@ -502,7 +497,7 @@ app.post("/templates", authMiddleware, async (req, res) => {
       return res.status(400).send("All fields are required!");
     }
 
-    if (typeof total_shots !== "number" || total_shots >= 0) {
+    if (typeof total_shots !== "number" || total_shots <= 0) {
       return res.status(400).send("Total shots must be a positive number greater than 0!");
     }
 
@@ -535,7 +530,7 @@ app.post("/templates/:templateId/zones", authMiddleware, async (req, res) => {
     const { templateId } = req.params;
     const { zone_id, planned_shots } = req.body;
 
-    if (!zone_id || planned_shots === undefined) {
+    if (zone_id === undefined || planned_shots === undefined) {
       return res.status(400).send("Zone ID and planned shots are required!");
     }
 
@@ -607,23 +602,33 @@ app.get("/templates/:templateId/zones", authMiddleware, async (req, res) => {
 });
 
 function authMiddleware(req, res, next) {
-  const token = req.headers.authorization && req.headers.authorization.split(" ")[1];
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).send("No token, authorization denied!");
+  }
+
+  const token = authHeader.split(" ")[1];
 
   if (!token) {
     return res.status(401).send("No token, authorization denied!");
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    );
 
     req.user = decoded;
 
     next();
+
   } catch (err) {
     console.error(err);
-    res.status(403).send("Invalid token!");
+    return res.status(403).send("Invalid token!");
   }
-};
+}
 
 app.listen(3000, () => {
   console.log("Server running on port 3000...");
