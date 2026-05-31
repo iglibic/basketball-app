@@ -195,6 +195,24 @@ app.post("/login", async (req, res) => {
   }
 });
 
+app.get("/zones", authMiddleware, async (req, res) => {
+  try {
+
+    const zones = await pool.query(
+      `SELECT *
+       FROM zones
+       WHERE is_active = true
+       ORDER BY display_order`
+    );
+
+    res.json(zones.rows);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error!");
+  }
+});
+
 app.get("/trainings", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.user_id;
