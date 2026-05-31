@@ -4,8 +4,27 @@ const express = require("express");
 const pool = require("./db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
 
 const app = express();
+
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+transporter.verify((error, success) => {
+  if (error) {
+    console.log("Mail config error:", error);
+  } else {
+    console.log("Mail server ready");
+  }
+});
 
 app.use(express.json());
 
@@ -43,24 +62,50 @@ app.post("/register", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const verificationToken = jwt.sign(
+      { email },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
     const newUser = await pool.query(
       `INSERT INTO users 
-      (first_name, last_name, nickname, email, password_hash)
-      VALUES ($1, $2, $3, $4, $5)
+      (first_name, last_name, nickname, email, password_hash, verification_token)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *`,
-      [first_name, last_name, nickname, email, hashedPassword]
+      [first_name, last_name, nickname, email, hashedPassword, verificationToken]
     );
+
+    const verificationLink = `http://localhost:3000/verify/${verificationToken}`;
+
+    console.log("Trying to send email to:", email);
+
+    try {
+      const info = await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "Verify your email for Basketball App",
+        html: `
+      <h1>Welcome to Basketball App, ${first_name}!</h1>
+      <p>Please click the link below to verify your email address:</p>
+
+      <a href="${verificationLink}">
+        Verify Email
+      </a>
+    `,
+      });
+
+      console.log("EMAIL SENT:", info.messageId);
+
+    } catch (mailError) {
+      console.error("MAIL ERROR:");
+      console.error(mailError);
+    }
 
     const user = newUser.rows[0];
 
     res.json({
-      user_id: user.user_id,
-      first_name: user.first_name,
-      last_name: user.last_name,
-      nickname: user.nickname,
-      email: user.email,
-      is_verified: user.is_verified,
-      created_at: user.created_at
+      message: "Registration successful. Check your email."
     });
   } catch (err) {
     console.error(err);
@@ -70,6 +115,30 @@ app.post("/register", async (req, res) => {
     }
 
     res.status(500).send("Server error!");
+  }
+});
+
+app.get("/verify/:token", async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    );
+
+    await pool.query(
+      `UPDATE users
+       SET is_verified = true,
+           verification_token = NULL
+       WHERE email = $1`,
+      [decoded.email]
+    );
+
+    res.send("Email verified successfully!");
+  } catch (err) {
+    console.error(err);
+    res.status(400).send("Invalid or expired token!");
   }
 });
 
@@ -91,6 +160,12 @@ app.post("/login", async (req, res) => {
     }
 
     const user = userResult.rows[0];
+
+    if (!user.is_verified) {
+      return res
+        .status(403)
+        .send("Please verify your email first!");
+    }
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
@@ -653,8 +728,8 @@ app.get("/global-stats", authMiddleware, async (req, res) => {
       totalShots === 0
         ? 0
         : Math.round(
-            (madeShots / totalShots) * 100
-          );
+          (madeShots / totalShots) * 100
+        );
 
     res.json({
       overall_percentage: overallPercentage,
