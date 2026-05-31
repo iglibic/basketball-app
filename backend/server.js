@@ -393,8 +393,13 @@ app.get("/trainings/:trainingId/stats", authMiddleware, async (req, res) => {
     const made_shots = Number(statsData.made_shots);
     const missed_shots = Number(statsData.missed_shots);
 
-    const percentage =
-      total_shots === 0 ? 0 : Math.round((made_shots / total_shots) * 100);
+    let percentage = 0;
+
+    if (total_shots > 0) {
+      percentage = Math.round(
+        (made_shots / total_shots) * 100
+      );
+    }
 
     res.json({
       training_id: Number(trainingId),
@@ -451,8 +456,13 @@ app.get("/trainings/:trainingId/zone-stats", authMiddleware, async (req, res) =>
       const made_shots = Number(row.made_shots);
       const missed_shots = Number(row.missed_shots);
 
-      const percentage =
-        total_shots === 0 ? 0 : Math.round((made_shots / total_shots) * 100);
+      let percentage = 0;
+
+      if (total_shots > 0) {
+        percentage = Math.round(
+          (made_shots / total_shots) * 100
+        );
+      }
 
       return {
         zone_id: row.zone_id,
@@ -697,10 +707,13 @@ app.get("/global-stats", authMiddleware, async (req, res) => {
       const total_shots = Number(row.total_shots);
       const made_shots = Number(row.made_shots);
 
-      const percentage =
-        total_shots === 0
-          ? 0
-          : Math.round((made_shots / total_shots) * 100);
+      let percentage = 0;
+
+      if (total_shots > 0) {
+        percentage = Math.round(
+          (made_shots / total_shots) * 100
+        );
+      }
 
       return {
         zone_id: row.zone_id,
@@ -724,16 +737,72 @@ app.get("/global-stats", authMiddleware, async (req, res) => {
     const madeShots =
       Number(overall.rows[0].made_shots);
 
-    const overallPercentage =
-      totalShots === 0
-        ? 0
-        : Math.round(
-          (madeShots / totalShots) * 100
-        );
+    let overallPercentage = 0;
 
+    if (totalShots > 0) {
+      overallPercentage = Math.round(
+        (madeShots / totalShots) * 100
+      );
+    }
     res.json({
       overall_percentage: overallPercentage,
       zones
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error!");
+  }
+});
+
+app.get("/my-stats", authMiddleware, async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+
+    const stats = await pool.query(
+      `SELECT
+        COUNT(*) AS total_shots,
+        COUNT(*) FILTER (WHERE s.made = true) AS made_shots
+       FROM shots s
+       JOIN trainings t
+       ON s.training_id = t.training_id
+       WHERE t.user_id = $1`,
+      [user_id]
+    );
+
+    const trainings = await pool.query(
+      `SELECT
+        COUNT(*) AS trainings_count
+       FROM trainings
+       WHERE user_id = $1`,
+      [user_id]
+    );
+
+    const total_shots =
+      Number(stats.rows[0].total_shots);
+
+    const made_shots =
+      Number(stats.rows[0].made_shots);
+
+    const missed_shots =
+      total_shots - made_shots;
+
+    let percentage = 0;
+
+    if (total_shots > 0) {
+      percentage = Math.round(
+        (made_shots / total_shots) * 100
+      );
+    }
+
+    res.json({
+      total_shots,
+      made_shots,
+      missed_shots,
+      trainings: Number(
+        trainings.rows[0].trainings_count
+      ),
+      percentage
     });
 
   } catch (err) {
