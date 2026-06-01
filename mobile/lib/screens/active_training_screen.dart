@@ -8,8 +8,13 @@ import 'training_summary_screen.dart';
 
 class ActiveTrainingScreen extends StatefulWidget {
   final int trainingId;
+  final int zoneId;
 
-  const ActiveTrainingScreen({super.key, required this.trainingId});
+  const ActiveTrainingScreen({
+    super.key,
+    required this.trainingId,
+    required this.zoneId,
+  });
 
   @override
   State<ActiveTrainingScreen> createState() => _ActiveTrainingScreenState();
@@ -73,7 +78,7 @@ class _ActiveTrainingScreenState extends State<ActiveTrainingScreen> {
         },
         body: jsonEncode({
           "training_id": widget.trainingId,
-          "zone_id": 1,
+          "zone_id": widget.zoneId,
           "made": made,
         }),
       );

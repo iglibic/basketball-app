@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'welcome_screen.dart';
 import 'start_training_screen.dart';
+import 'training_history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -45,6 +46,10 @@ class _HomeScreenState extends State<HomeScreen> {
           percentage = data["percentage"];
           totalShots = data["total_shots"];
           trainings = data["trainings"];
+          isLoading = false;
+        });
+      } else {
+        setState(() {
           isLoading = false;
         });
       }
@@ -175,6 +180,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
                 child: const Text("START TRAINING"),
+              ),
+            ),
+            const SizedBox(height: 15),
+            SizedBox(
+              height: 60,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TrainingHistoryScreen(),
+                    ),
+                  );
+                },
+                child: const Text("TRAINING HISTORY"),
               ),
             ),
           ],

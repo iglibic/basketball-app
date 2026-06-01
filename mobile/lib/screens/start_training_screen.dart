@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart';
-
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -17,10 +16,46 @@ class StartTrainingScreen extends StatefulWidget {
 class _StartTrainingScreenState extends State<StartTrainingScreen> {
   final trainingNameController = TextEditingController();
 
+  List<dynamic> zones = [];
+  int? selectedZoneId;
+
+  @override
+  void initState() {
+    super.initState();
+    loadZones();
+  }
+
   @override
   void dispose() {
     trainingNameController.dispose();
     super.dispose();
+  }
+
+  Future<void> loadZones() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      final token = prefs.getString("token");
+
+      final response = await http.get(
+        Uri.parse("http://10.0.2.2:3000/zones"),
+        headers: {"Authorization": "Bearer $token"},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        setState(() {
+          zones = data;
+
+          if (zones.isNotEmpty) {
+            selectedZoneId = zones[0]["zone_id"];
+          }
+        });
+      }
+    } catch (e) {
+      print(e);
+    }
   }
 
   Future<void> createTraining() async {
@@ -31,11 +66,17 @@ class _StartTrainingScreenState extends State<StartTrainingScreen> {
       return;
     }
 
+    if (selectedZoneId == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Select a zone")));
+      return;
+    }
+
     try {
       final prefs = await SharedPreferences.getInstance();
 
       final token = prefs.getString("token");
-      print("TOKEN: $token");
 
       final response = await http.post(
         Uri.parse("http://10.0.2.2:3000/trainings"),
@@ -49,16 +90,16 @@ class _StartTrainingScreenState extends State<StartTrainingScreen> {
         }),
       );
 
-      print(response.body);
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                ActiveTrainingScreen(trainingId: data["training_id"]),
+            builder: (context) => ActiveTrainingScreen(
+              trainingId: data["training_id"],
+              zoneId: selectedZoneId!,
+            ),
           ),
         );
       } else {
@@ -84,6 +125,24 @@ class _StartTrainingScreenState extends State<StartTrainingScreen> {
             TextField(
               controller: trainingNameController,
               decoration: const InputDecoration(labelText: "Training Name"),
+            ),
+
+            const SizedBox(height: 20),
+
+            DropdownButton<int>(
+              value: selectedZoneId,
+              isExpanded: true,
+              items: zones.map((zone) {
+                return DropdownMenuItem<int>(
+                  value: zone["zone_id"],
+                  child: Text(zone["zone_name"]),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  selectedZoneId = value;
+                });
+              },
             ),
 
             const SizedBox(height: 30),
