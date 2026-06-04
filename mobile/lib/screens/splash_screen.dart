@@ -23,60 +23,34 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> startLoading() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    setState(() {
-      progress = 0.33;
-    });
-
-    await Future.delayed(const Duration(seconds: 1));
-
-    setState(() {
-      progress = 0.66;
-    });
-
-    await Future.delayed(const Duration(seconds: 1));
-
-    setState(() {
-      progress = 1;
-    });
-
-    final prefs = await SharedPreferences.getInstance();
-
-    final token = prefs.getString("token");
+    await Future.delayed(const Duration(seconds: 10));
 
     if (!mounted) return;
 
-    if (token != null) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const WelcomeScreen()),
-      );
-    }
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF083169),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(30),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Image.asset("assets/images/logo_white.png", width: 280),
+
+              const SizedBox(height: 10),
+
               const Text(
-                "Basketball App",
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                "Track. Train. Improve.",
+                style: TextStyle(color: Colors.white70, fontSize: 16),
               ),
-
-              const SizedBox(height: 40),
-
-              LinearProgressIndicator(value: progress),
             ],
           ),
         ),
