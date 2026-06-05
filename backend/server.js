@@ -111,7 +111,18 @@ app.post("/register", async (req, res) => {
     console.error(err);
 
     if (err.code === "23505") {
-      return res.status(400).send("Email or nickname already exists!");
+
+      if (err.detail.includes("(email)")) {
+        return res
+          .status(400)
+          .send("Email already exists.");
+      }
+
+      if (err.detail.includes("(nickname)")) {
+        return res
+          .status(400)
+          .send("Nickname already exists.");
+      }
     }
 
     res.status(500).send("Server error!");
@@ -857,6 +868,141 @@ function authMiddleware(req, res, next) {
     return res.status(403).send("Invalid token!");
   }
 }
+
+app.post("/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const userResult = await pool.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).send("User not found!");
+    }
+
+    const resetCode =
+      Math.floor(100000 + Math.random() * 900000)
+        .toString();
+
+    const expires = new Date(
+      Date.now() + 10 * 60 * 1000
+    );
+
+    await pool.query(
+      `UPDATE users
+       SET reset_code = $1,
+           reset_code_expires = $2
+       WHERE email = $3`,
+      [resetCode, expires, email]
+    );
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "BasketIQ Password Reset",
+      html: `
+        <h2>Password Reset</h2>
+
+        <p>Your reset code is:</p>
+
+        <h1>${resetCode}</h1>
+
+        <p>This code expires in 10 minutes.</p>
+      `,
+    });
+
+    res.send("Reset code sent!");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error!");
+  }
+});
+
+app.post("/verify-reset-code", async (req, res) => {
+  try {
+    const { email, code } = req.body;
+
+    const result = await pool.query(
+      `SELECT *
+       FROM users
+       WHERE email = $1`,
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).send("User not found!");
+    }
+
+    const user = result.rows[0];
+
+    if (user.reset_code !== code) {
+      return res.status(400).send("Invalid code!");
+    }
+
+    if (
+      !user.reset_code_expires ||
+      new Date(user.reset_code_expires) < new Date()
+    ) {
+      return res.status(400).send("Code expired!");
+    }
+
+    res.send("Code verified!");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error!");
+  }
+});
+
+app.post("/reset-password", async (req, res) => {
+  try {
+    const {
+      email,
+      code,
+      newPassword
+    } = req.body;
+
+    const result = await pool.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).send("User not found!");
+    }
+
+    const user = result.rows[0];
+
+    if (user.reset_code !== code) {
+      return res.status(400).send("Invalid code!");
+    }
+
+    if (
+      !user.reset_code_expires ||
+      new Date(user.reset_code_expires) < new Date()
+    ) {
+      return res.status(400).send("Code expired!");
+    }
+
+    const hashedPassword =
+      await bcrypt.hash(newPassword, 10);
+
+    await pool.query(
+      `UPDATE users
+       SET password_hash = $1,
+           reset_code = NULL,
+           reset_code_expires = NULL
+       WHERE email = $2`,
+      [hashedPassword, email]
+    );
+
+    res.send("Password reset successful!");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error!");
+  }
+});
 
 app.listen(3000, () => {
   console.log("Server running on port 3000...");
