@@ -720,7 +720,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       const SizedBox(width: 18),
 
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -728,18 +728,27 @@ class _HomeScreenState extends State<HomeScreen> {
                               "Discipline today,",
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 18,
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
 
                             SizedBox(height: 4),
 
-                            Text(
-                              "dominance tomorrow.",
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 15,
+                            RichText(
+                              text: TextSpan(
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                children: const [
+                                  TextSpan(
+                                    text: "dominance",
+                                    style: TextStyle(color: Color(0xFFD946EF)),
+                                  ),
+                                  TextSpan(text: " tomorrow."),
+                                ],
                               ),
                             ),
                           ],

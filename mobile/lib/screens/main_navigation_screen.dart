@@ -34,62 +34,138 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     ];
   }
 
+  Widget _navItem({
+    required IconData icon,
+    required String label,
+    required int index,
+  }) {
+    final isSelected = selectedIndex == index;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedIndex = index;
+        });
+      },
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            color: isSelected ? const Color(0xFF7C5CFF) : Colors.white54,
+          ),
+
+          const SizedBox(height: 4),
+
+          Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? const Color(0xFF7C5CFF) : Colors.white54,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       body: screens[selectedIndex],
 
       bottomNavigationBar: Container(
+        height: 82,
         decoration: const BoxDecoration(
           color: Color(0xFF111827),
           border: Border(top: BorderSide(color: Color(0xFF1F2937), width: 1)),
         ),
-        child: BottomNavigationBar(
-          currentIndex: selectedIndex,
-          type: BottomNavigationBarType.fixed,
-
-          backgroundColor: const Color(0xFF111827),
-
-          selectedItemColor: const Color(0xFF7C5CFF),
-          unselectedItemColor: Colors.white54,
-
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
-
-          onTap: (index) {
-            setState(() {
-              selectedIndex = index;
-            });
-          },
-
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: "Home",
+        child: Row(
+          children: [
+            Expanded(
+              child: _navItem(
+                icon: selectedIndex == 0 ? Icons.home : Icons.home_outlined,
+                label: "Home",
+                index: 0,
+              ),
             ),
 
-            BottomNavigationBarItem(
-              icon: Icon(Icons.track_changes_outlined),
-              activeIcon: Icon(Icons.track_changes),
-              label: "Stats",
+            Expanded(
+              child: _navItem(
+                icon: selectedIndex == 1
+                    ? Icons.track_changes
+                    : Icons.track_changes_outlined,
+                label: "Stats",
+                index: 1,
+              ),
             ),
 
-            BottomNavigationBarItem(
-              icon: Icon(Icons.add_circle, size: 34),
-              label: "",
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    selectedIndex = 2;
+                  });
+                },
+                child: Transform.translate(
+                  offset: const Offset(0, -17),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 54,
+                        height: 54,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF5511B8), Color(0xFF7C3AED)],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF7C3AED).withOpacity(0.25),
+                              blurRadius: 7,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.add,
+                          color: Colors.white,
+                          size: 30,
+                        ),
+                      ),
+
+                      const SizedBox(height: 9),
+
+                      Text(
+                        "Workout",
+                        style: TextStyle(
+                          color: selectedIndex == 2
+                              ? const Color(0xFF7C5CFF)
+                              : Colors.white54,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
 
-            BottomNavigationBarItem(
-              icon: Icon(Icons.groups_outlined),
-              activeIcon: Icon(Icons.groups),
-              label: "Friends",
+            Expanded(
+              child: _navItem(
+                icon: selectedIndex == 3 ? Icons.groups : Icons.groups_outlined,
+                label: "Friends",
+                index: 3,
+              ),
             ),
 
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: "Profile",
+            Expanded(
+              child: _navItem(
+                icon: selectedIndex == 4 ? Icons.person : Icons.person_outline,
+                label: "Profile",
+                index: 4,
+              ),
             ),
           ],
         ),
