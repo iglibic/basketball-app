@@ -65,7 +65,7 @@ app.post("/register", async (req, res) => {
     const verificationToken = jwt.sign(
       { email },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" }
+      { expiresIn: "30d" }
     );
 
     const newUser = await pool.query(
@@ -833,6 +833,88 @@ app.get("/my-stats", authMiddleware, async (req, res) => {
       ),
       percentage
     });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error!");
+  }
+});
+
+app.get("/me", authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `
+      SELECT
+        user_id,
+        first_name,
+        last_name,
+        nickname,
+        email
+      FROM users
+      WHERE user_id = $1
+      `,
+      [req.user.user_id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+});
+
+app.get("/recent-workouts", authMiddleware, async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+
+    const result = await pool.query(
+      `
+      SELECT
+        t.training_id,
+        t.training_name,
+        t.started_at,
+
+        COUNT(s.shot_id) AS total_shots,
+
+        COUNT(*) FILTER (WHERE s.made = true) AS made_shots,
+
+        CASE
+          WHEN COUNT(s.shot_id) = 0 THEN 0
+          ELSE ROUND(
+            COUNT(*) FILTER (WHERE s.made = true) * 100.0
+            / COUNT(s.shot_id)
+          )
+        END AS percentage
+
+      FROM trainings t
+
+      LEFT JOIN shots s
+      ON t.training_id = s.training_id
+
+      WHERE t.user_id = $1
+
+      GROUP BY
+        t.training_id,
+        t.training_name,
+        t.started_at
+
+      ORDER BY t.started_at DESC
+
+      LIMIT 2
+      `,
+      [user_id]
+    );
+
+    res.json(result.rows);
 
   } catch (err) {
     console.error(err);
