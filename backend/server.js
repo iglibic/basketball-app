@@ -922,34 +922,6 @@ app.get("/recent-workouts", authMiddleware, async (req, res) => {
   }
 });
 
-function authMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader) {
-    return res.status(401).send("No token, authorization denied!");
-  }
-
-  const token = authHeader.split(" ")[1];
-
-  if (!token) {
-    return res.status(401).send("No token, authorization denied!");
-  }
-
-  try {
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET
-    );
-
-    req.user = decoded;
-
-    next();
-
-  } catch (err) {
-    console.error(err);
-    return res.status(403).send("Invalid token!");
-  }
-}
 
 app.post("/forgot-password", async (req, res) => {
   try {
@@ -1085,6 +1057,83 @@ app.post("/reset-password", async (req, res) => {
     res.status(500).send("Server error!");
   }
 });
+
+app.get("/all-trainings", authMiddleware, async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+
+    const result = await pool.query(
+      `
+      SELECT
+        t.training_id,
+        t.training_name,
+        t.started_at,
+        t.finished_at,
+        t.duration_minutes,
+
+        COUNT(s.shot_id) AS total_shots,
+
+        CASE
+          WHEN COUNT(s.shot_id) = 0 THEN 0
+          ELSE ROUND(
+            COUNT(*) FILTER (WHERE s.made = true) * 100.0
+            / COUNT(s.shot_id)
+          )
+        END AS percentage
+
+      FROM trainings t
+
+      LEFT JOIN shots s
+      ON s.training_id = t.training_id
+
+      WHERE t.user_id = $1
+
+      GROUP BY
+        t.training_id,
+        t.training_name,
+        t.started_at
+
+      ORDER BY t.started_at DESC
+      `,
+      [user_id]
+    );
+
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error!");
+  }
+});
+
+function authMiddleware(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).send("No token, authorization denied!");
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).send("No token, authorization denied!");
+  }
+
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    );
+
+    req.user = decoded;
+
+    next();
+
+  } catch (err) {
+    console.error(err);
+    return res.status(403).send("Invalid token!");
+  }
+}
 
 app.listen(3000, () => {
   console.log("Server running on port 3000...");

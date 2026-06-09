@@ -17,9 +17,33 @@ class BasketballApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: SplashScreen(),
+
+      theme: ThemeData(
+        scaffoldBackgroundColor: const Color(0xFF0D1224),
+
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {TargetPlatform.android: NoTransitionsBuilder()},
+        ),
+      ),
+
+      home: const SplashScreen(),
     );
+  }
+}
+
+class NoTransitionsBuilder extends PageTransitionsBuilder {
+  const NoTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return child;
   }
 }
