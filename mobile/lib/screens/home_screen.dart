@@ -524,7 +524,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Row(
                             children: [
                               const Icon(
-                                Icons.sports_basketball,
+                                Icons.sports_basketball_outlined,
                                 color: Color(0xFFD946EF),
                                 size: 26,
                               ),
