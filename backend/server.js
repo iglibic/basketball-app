@@ -1106,6 +1106,90 @@ app.get("/all-trainings", authMiddleware, async (req, res) => {
   }
 });
 
+app.put("/change-password", authMiddleware, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        message: "All fields are required",
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters long",
+      });
+    }
+
+    const users = await pool.query(
+      "SELECT password_hash FROM users WHERE user_id = $1",
+      [req.user.user_id]
+    );
+
+    if (users.rows.length === 0) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const validPassword = await bcrypt.compare(
+      currentPassword,
+      users.rows[0].password_hash
+    );
+
+    if (!validPassword) {
+      return res.status(400).json({
+        message: "Current password is incorrect!",
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        message: "Password must be at least 8 characters!",
+      });
+    }
+
+    if (!/[A-Z]/.test(newPassword)) {
+      return res.status(400).json({
+        message: "Password must contain at least one uppercase letter!",
+      });
+    }
+
+    if (!/[0-9]/.test(newPassword)) {
+      return res.status(400).json({
+        message: "Password must contain at least one number!",
+      });
+    }
+
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
+      return res.status(400).json({
+        message: "Password must contain at least one special character!",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(
+      newPassword,
+      10
+    );
+
+    await pool.query(
+      "UPDATE users SET password_hash = $1 WHERE user_id = $2",
+      [hashedPassword, req.user.user_id]
+    );
+
+    res.json({
+      message: "Password changed successfully!",
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Server error!",
+    });
+  }
+});
+
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
 

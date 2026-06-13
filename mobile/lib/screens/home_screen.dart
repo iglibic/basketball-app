@@ -9,8 +9,13 @@ import 'training_history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback onStartWorkout;
+  final VoidCallback onOpenProfile;
 
-  const HomeScreen({super.key, required this.onStartWorkout});
+  const HomeScreen({
+    super.key,
+    required this.onStartWorkout,
+    required this.onOpenProfile,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -46,20 +51,23 @@ class _HomeScreenState extends State<HomeScreen> {
         headers: {"Authorization": "Bearer $token"},
       );
 
+      print("TOKEN: $token");
+      print("STATUS: ${response.statusCode}");
+      print("BODY: ${response.body}");
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
         setState(() {
-          percentage = data["percentage"];
           totalShots = data["total_shots"];
           trainings = data["trainings"];
-          isLoading = false;
-        });
-      } else {
-        setState(() {
-          isLoading = false;
+          percentage = data["percentage"];
         });
       }
+
+      setState(() {
+        isLoading = false;
+      });
     } catch (e) {
       print(e);
 
@@ -79,6 +87,10 @@ class _HomeScreenState extends State<HomeScreen> {
         Uri.parse("http://10.0.2.2:3000/me"),
         headers: {"Authorization": "Bearer $token"},
       );
+
+      print("TOKEN: $token");
+      print("STATUS: ${response.statusCode}");
+      print("BODY: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -223,48 +235,37 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
 
                     GestureDetector(
-                      onTap: () {
-                        // kasnije ProfileScreen
-                      },
-                      child: GestureDetector(
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Profile screen coming soon"),
-                            ),
-                          );
-                        },
+                      onTap: widget.onOpenProfile,
 
-                        child: Container(
-                          width: 50,
-                          height: 50,
+                      child: Container(
+                        width: 50,
+                        height: 50,
 
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
 
-                            border: Border.all(
-                              color: const Color(0xFF7C5CFF),
-                              width: 1.5,
-                            ),
+                          border: Border.all(
+                            color: const Color(0xFF7C5CFF),
+                            width: 1.5,
                           ),
+                        ),
 
-                          child: ClipOval(
-                            child: profileImageUrl != null
-                                ? Image.network(
-                                    profileImageUrl!,
-                                    fit: BoxFit.cover,
-                                  )
-                                : Center(
-                                    child: Text(
-                                      getInitials(),
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                        child: ClipOval(
+                          child: profileImageUrl != null
+                              ? Image.network(
+                                  profileImageUrl!,
+                                  fit: BoxFit.cover,
+                                )
+                              : Center(
+                                  child: Text(
+                                    getInitials(),
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                          ),
+                                ),
                         ),
                       ),
                     ),

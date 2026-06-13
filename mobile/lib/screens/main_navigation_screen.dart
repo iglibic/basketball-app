@@ -29,6 +29,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             selectedIndex = 2;
           });
         },
+        onOpenProfile: () {
+          setState(() {
+            selectedIndex = 4;
+          });
+        },
       ),
       const StatsScreen(),
       const NewWorkoutScreen(),

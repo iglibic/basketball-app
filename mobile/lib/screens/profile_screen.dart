@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 import 'welcome_screen.dart';
+import 'change_password_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -42,6 +43,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         headers: {"Authorization": "Bearer $token"},
       );
 
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        await logout();
+        return;
+      }
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
@@ -66,6 +72,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Uri.parse("http://10.0.2.2:3000/my-stats"),
         headers: {"Authorization": "Bearer $token"},
       );
+
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        await logout();
+        return;
+      }
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -372,7 +383,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             profileTile(icon: Icons.person_outline, title: "Edit Profile"),
 
-            profileTile(icon: Icons.lock_outline, title: "Change Password"),
+            profileTile(
+              icon: Icons.lock_outline,
+              title: "Change Password",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ChangePasswordScreen(),
+                  ),
+                );
+              },
+            ),
 
             const SizedBox(height: 12),
 
