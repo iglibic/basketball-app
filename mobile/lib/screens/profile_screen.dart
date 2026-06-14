@@ -6,6 +6,7 @@ import 'dart:convert';
 
 import 'welcome_screen.dart';
 import 'change_password_screen.dart';
+import 'about_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -412,8 +413,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             const SizedBox(height: 12),
 
-            profileTile(icon: Icons.info_outline, title: "About BasketIQ"),
-
+            profileTile(
+              icon: Icons.info_outline,
+              title: "About BasketIQ",
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AboutScreen()),
+                );
+              },
+            ),
             const SizedBox(height: 14),
 
             profileTile(
