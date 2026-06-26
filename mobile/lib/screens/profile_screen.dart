@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'welcome_screen.dart';
 import 'change_password_screen.dart';
 import 'about_screen.dart';
+import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -20,6 +21,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String lastName = "";
   String nickname = "";
   String email = "";
+  String? profileImageUrl;
 
   int totalShots = 0;
   int trainings = 0;
@@ -57,6 +59,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           lastName = data["last_name"] ?? "";
           nickname = data["nickname"] ?? "";
           email = data["email"] ?? "";
+          profileImageUrl = data["profile_image"];
         });
       }
     } catch (e) {
@@ -109,6 +112,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context,
       MaterialPageRoute(builder: (context) => const WelcomeScreen()),
       (route) => false,
+    );
+  }
+
+  Widget _buildInitialsFallback() {
+    final initials =
+        "${firstName.isNotEmpty ? firstName[0] : ""}${lastName.isNotEmpty ? lastName[0] : ""}"
+            .toUpperCase();
+
+    return Text(
+      initials.isNotEmpty ? initials : "IG",
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 32,
+        fontWeight: FontWeight.bold,
+      ),
     );
   }
 
@@ -191,38 +209,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
 
                     child: Center(
-                      child: Center(
-                        child: Text(
-                          "${firstName.isNotEmpty ? firstName[0] : ""}${lastName.isNotEmpty ? lastName[0] : ""}",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF7C5CFF),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFF0D1224),
-                          width: 3,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.add_a_photo_outlined,
-                        color: Colors.white,
-                        size: 18,
-                      ),
+                      child:
+                          profileImageUrl != null && profileImageUrl!.isNotEmpty
+                          ? ClipOval(
+                              child: Image.network(
+                                "http://10.0.2.2:3000${profileImageUrl!}?t=${DateTime.now().millisecondsSinceEpoch}",
+                                width: 120,
+                                height: 120,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) {
+                                  return _buildInitialsFallback();
+                                },
+                              ),
+                            )
+                          : _buildInitialsFallback(),
                     ),
                   ),
                 ],
@@ -382,7 +382,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             const SizedBox(height: 10),
 
-            profileTile(icon: Icons.person_outline, title: "Edit Profile"),
+            profileTile(
+              icon: Icons.person_outline,
+              title: "Edit Profile",
+              onTap: () async {
+                final didSave = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const EditProfileScreen(),
+                  ),
+                );
+
+                if (didSave == true && mounted) {
+                  await loadUser();
+                }
+              },
+            ),
 
             profileTile(
               icon: Icons.lock_outline,

@@ -5,8 +5,14 @@ const pool = require("./db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
+const multer = require("multer");
+const path = require("path");
 
 const app = express();
+
+// Omogućimo da se fajlovi iz /uploads serviraju klijentu.
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
@@ -25,6 +31,21 @@ transporter.verify((error, success) => {
     console.log("Mail server ready");
   }
 });
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/");
+  },
+
+  filename: (req, file, cb) => {
+    cb(
+      null,
+      `profile_${req.user.user_id}${path.extname(file.originalname)}`
+    );
+  },
+});
+
+const upload = multer({ storage });
 
 app.use(express.json());
 
@@ -849,7 +870,10 @@ app.get("/me", authMiddleware, async (req, res) => {
         first_name,
         last_name,
         nickname,
-        email
+        email,
+        position,
+        dominant_hand,
+        profile_image
       FROM users
       WHERE user_id = $1
       `,
@@ -1189,6 +1213,153 @@ app.put("/change-password", authMiddleware, async (req, res) => {
     });
   }
 });
+
+app.put("/update-profile", authMiddleware, async (req, res) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      nickname,
+      position,
+      dominantHand,
+    } = req.body;
+
+    if (!firstName || !lastName || !nickname) {
+      return res.status(400).json({
+        message: "All fields are required",
+      });
+    }
+
+    const existingUser = await pool.query(
+      `
+      SELECT user_id
+      FROM users
+      WHERE nickname = $1
+      AND user_id != $2
+      `,
+      [nickname, req.user.user_id]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({
+        message: "Nickname already taken",
+      });
+    }
+
+    await pool.query(
+      `
+      UPDATE users
+      SET
+        first_name = $1,
+        last_name = $2,
+        nickname = $3,
+        position = $4,
+        dominant_hand = $5
+      WHERE user_id = $6
+      `,
+      [
+        firstName,
+        lastName,
+        nickname,
+        position,
+        dominantHand,
+        req.user.user_id,
+      ]
+    );
+
+    res.json({
+      message: "Profile updated successfully",
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+});
+
+app.post("/upload-profile-image", authMiddleware, upload.single("image"),
+  async (req, res) => {
+    try {
+      const userId = req.user.user_id;
+      const newImagePath = `/uploads/${req.file.filename}`;
+
+      // 1) Obrisi stari fajl (ako postoji)
+      const oldUser = await pool.query(
+        `SELECT profile_image FROM users WHERE user_id = $1`,
+        [userId]
+      );
+
+      const oldImage = oldUser.rows[0]?.profile_image;
+      if (oldImage) {
+        const oldFilePath = path.join(__dirname, oldImage.startsWith('/uploads/') ? oldImage : `uploads/${path.basename(oldImage)}`);
+        const fs = require('fs');
+        fs.promises.unlink(oldFilePath).catch(() => {});
+      }
+
+      // 2) Update u bazi
+      await pool.query(
+        `
+        UPDATE users
+        SET profile_image = $1
+        WHERE user_id = $2
+        `,
+        [newImagePath, userId]
+      );
+
+      res.json({
+        image: newImagePath,
+      });
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        message: "Server error",
+      });
+    }
+  }
+);
+
+app.delete("/delete-profile-image", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+
+    // 1) Uzmi i obriši fajl
+    const oldUser = await pool.query(
+      `SELECT profile_image FROM users WHERE user_id = $1`,
+      [userId]
+    );
+
+    const oldImage = oldUser.rows[0]?.profile_image;
+
+    if (oldImage) {
+      const oldFilePath = path.join(__dirname, oldImage.startsWith('/uploads/') ? oldImage : `uploads/${path.basename(oldImage)}`);
+      const fs = require('fs');
+      fs.promises.unlink(oldFilePath).catch(() => {});
+    }
+
+    // 2) Ukloni iz baze
+    await pool.query(
+      `
+      UPDATE users
+      SET profile_image = NULL
+      WHERE user_id = $1
+      `,
+      [userId]
+    );
+
+    res.json({
+      message: 'Profile image deleted successfully',
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+});
+
 
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;

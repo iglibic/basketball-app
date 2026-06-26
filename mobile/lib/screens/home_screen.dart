@@ -30,6 +30,13 @@ class _HomeScreenState extends State<HomeScreen> {
   String firstName = "";
   String lastName = "";
 
+  String getProfileImageUrlWithBust() {
+    if (profileImageUrl == null || profileImageUrl!.isEmpty) return "";
+    final base = profileImageUrl!;
+    final url = base.startsWith("http") ? base : "http://10.0.2.2:3000$base";
+    return "$url?t=${DateTime.now().millisecondsSinceEpoch}";
+  }
+
   bool isLoading = true;
 
   @override
@@ -98,6 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           firstName = data["first_name"] ?? "";
           lastName = data["last_name"] ?? "";
+          profileImageUrl = data["profile_image"];
         });
       }
     } catch (e) {
@@ -253,7 +261,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: ClipOval(
                           child: profileImageUrl != null
                               ? Image.network(
-                                  profileImageUrl!,
+                                  getProfileImageUrlWithBust(),
                                   fit: BoxFit.cover,
                                 )
                               : Center(

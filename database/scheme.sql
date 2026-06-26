@@ -13,10 +13,12 @@ CREATE TABLE users(
 	nickname VARCHAR(50) NOT NULL UNIQUE,
 	email VARCHAR(100) NOT NULL UNIQUE,
 	password_hash VARCHAR(255) NOT NULL,
+	profile_image VARCHAR(255),
 	is_verified BOOLEAN DEFAULT FALSE,
 	verification_token VARCHAR(255),
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
 
 CREATE TABLE training_templates(
 	template_id SERIAL PRIMARY KEY,
