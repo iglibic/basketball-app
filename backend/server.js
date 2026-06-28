@@ -10,9 +10,7 @@ const path = require("path");
 
 const app = express();
 
-// Omogućimo da se fajlovi iz /uploads serviraju klijentu.
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
@@ -1115,7 +1113,9 @@ app.get("/all-trainings", authMiddleware, async (req, res) => {
       GROUP BY
         t.training_id,
         t.training_name,
-        t.started_at
+        t.started_at,
+        t.finished_at,
+        t.duration_minutes,
 
       ORDER BY t.started_at DESC
       `,
@@ -1285,7 +1285,6 @@ app.post("/upload-profile-image", authMiddleware, upload.single("image"),
       const userId = req.user.user_id;
       const newImagePath = `/uploads/${req.file.filename}`;
 
-      // 1) Obrisi stari fajl (ako postoji)
       const oldUser = await pool.query(
         `SELECT profile_image FROM users WHERE user_id = $1`,
         [userId]
@@ -1295,10 +1294,9 @@ app.post("/upload-profile-image", authMiddleware, upload.single("image"),
       if (oldImage) {
         const oldFilePath = path.join(__dirname, oldImage.startsWith('/uploads/') ? oldImage : `uploads/${path.basename(oldImage)}`);
         const fs = require('fs');
-        fs.promises.unlink(oldFilePath).catch(() => {});
+        fs.promises.unlink(oldFilePath).catch(() => { });
       }
 
-      // 2) Update u bazi
       await pool.query(
         `
         UPDATE users
@@ -1325,7 +1323,6 @@ app.delete("/delete-profile-image", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.user_id;
 
-    // 1) Uzmi i obriši fajl
     const oldUser = await pool.query(
       `SELECT profile_image FROM users WHERE user_id = $1`,
       [userId]
@@ -1336,10 +1333,9 @@ app.delete("/delete-profile-image", authMiddleware, async (req, res) => {
     if (oldImage) {
       const oldFilePath = path.join(__dirname, oldImage.startsWith('/uploads/') ? oldImage : `uploads/${path.basename(oldImage)}`);
       const fs = require('fs');
-      fs.promises.unlink(oldFilePath).catch(() => {});
+      fs.promises.unlink(oldFilePath).catch(() => { });
     }
 
-    // 2) Ukloni iz baze
     await pool.query(
       `
       UPDATE users

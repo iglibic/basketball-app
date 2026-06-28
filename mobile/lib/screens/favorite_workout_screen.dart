@@ -4,14 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-class TrainingHistoryScreen extends StatefulWidget {
-  const TrainingHistoryScreen({super.key});
+class FavoriteWorkoutsScreen extends StatefulWidget {
+  const FavoriteWorkoutsScreen({super.key});
 
   @override
-  State<TrainingHistoryScreen> createState() => _TrainingHistoryScreenState();
+  State<FavoriteWorkoutsScreen> createState() => _FavoriteWorkoutsScreenState();
 }
 
-class _TrainingHistoryScreenState extends State<TrainingHistoryScreen> {
+class _FavoriteWorkoutsScreenState extends State<FavoriteWorkoutsScreen> {
   List trainings = [];
 
   List filteredTrainings = [];
@@ -55,6 +55,24 @@ class _TrainingHistoryScreenState extends State<TrainingHistoryScreen> {
       setState(() {
         isLoading = false;
       });
+    }
+  }
+
+  Future<void> toggleFavorite(int trainingId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString("token");
+
+      final response = await http.put(
+        Uri.parse("http://10.0.2.2:3000/trainings/$trainingId/favorite"),
+        headers: {"Authorization": "Bearer $token"},
+      );
+
+      if (response.statusCode == 200) {
+        loadTrainings();
+      }
+    } catch (e) {
+      print(e);
     }
   }
 
@@ -384,14 +402,18 @@ class _TrainingHistoryScreenState extends State<TrainingHistoryScreen> {
                           children: [
                             IconButton(
                               onPressed: () {
-                                // TODO: Favorite workouts
+                                toggleFavorite(training["training_id"]);
                               },
                               splashRadius: 20,
                               constraints: const BoxConstraints(),
                               padding: EdgeInsets.zero,
-                              icon: const Icon(
-                                Icons.star_outline_rounded,
-                                color: Colors.white38,
+                              icon: Icon(
+                                training["is_favorite"] == true
+                                    ? Icons.star_rounded
+                                    : Icons.star_outline_rounded,
+                                color: training["is_favorite"] == true
+                                    ? const Color(0xFFFFD54F)
+                                    : Colors.white38,
                                 size: 22,
                               ),
                             ),
