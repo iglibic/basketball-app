@@ -131,7 +131,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF7C3AED).withOpacity(0.25),
+                              color: const Color(
+                                0xFF7C3AED,
+                              ).withValues(alpha: 0.25),
                               blurRadius: 7,
                             ),
                           ],

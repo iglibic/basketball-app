@@ -93,7 +93,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                     width: 135,
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.75),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.75,
+                                      ),
                                       borderRadius: BorderRadius.circular(22),
                                     ),
                                     child: Column(

@@ -1115,7 +1115,7 @@ app.get("/all-trainings", authMiddleware, async (req, res) => {
         t.training_name,
         t.started_at,
         t.finished_at,
-        t.duration_minutes,
+        t.duration_minutes
 
       ORDER BY t.started_at DESC
       `,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'screens/splash_screen.dart';
-import 'package:flutter/material.dart';
 
 void main() {
   FlutterError.onError = (FlutterErrorDetails details) {

@@ -192,7 +192,7 @@ class _FavoriteWorkoutsScreenState extends State<FavoriteWorkoutsScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
 
         title: const Text(
-          "All Trainings",
+          "Favorite Workouts",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
 
