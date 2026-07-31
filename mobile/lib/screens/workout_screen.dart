@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/position_result.dart';
 import '../models/preset_position.dart';
@@ -33,11 +36,18 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   Timer? _timer;
   Duration _elapsed = Duration.zero;
 
+  /// Preset pozicija se mapira na zone_id preko naziva (zones.zone_name).
+  final Map<String, int> _zoneIdByName = {};
+
+  bool _isSaving = false;
+
   @override
   void initState() {
     super.initState();
 
     _startTime = DateTime.now();
+
+    loadZones();
 
     for (int i = 0; i < widget.positions.length; i++) {
       _makesControllers.add(TextEditingController());
@@ -161,7 +171,46 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     return discard ?? false;
   }
 
-  void _finishWorkout() {
+  Future<void> loadZones() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString("token");
+
+      final response = await http.get(
+        Uri.parse("http://10.0.2.2:3000/zones"),
+        headers: {"Authorization": "Bearer $token"},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        if (!mounted) return;
+
+        setState(() {
+          for (final zone in data) {
+            _zoneIdByName[zone["zone_name"]] = zone["zone_id"];
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint("Failed to load zones: $e");
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.red.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        content: Text(message),
+      ),
+    );
+  }
+
+  Future<void> _finishWorkout() async {
+    if (_isSaving) return;
+
     final results = <PositionResult>[];
 
     for (int i = 0; i < widget.positions.length; i++) {
@@ -174,29 +223,91 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       );
     }
 
-    final totalShots = totalAttempts;
-    final madeShots = totalMakes;
+    // Salju se samo pozicije na kojima je bilo pokusaja
+    final shotResults = results
+        .where((result) => result.attempts > 0)
+        .toList();
 
-    final percentage = totalShots == 0
-        ? 0
-        : ((madeShots / totalShots) * 100).round();
+    final unmapped = shotResults
+        .where((result) => !_zoneIdByName.containsKey(result.position.name))
+        .map((result) => result.position.name)
+        .toList();
 
-    _timer?.cancel();
+    if (unmapped.isNotEmpty) {
+      _showError("Could not save: unknown position ${unmapped.first}.");
+      return;
+    }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TrainingSummaryScreen(
-          totalShots: totalShots,
-          madeShots: madeShots,
-          missedShots: totalShots - madeShots,
-          percentage: percentage,
-          results: results,
-          duration: DateTime.now().difference(_startTime),
-          workoutName: widget.workoutName,
+    setState(() => _isSaving = true);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString("token");
+
+      final duration = DateTime.now().difference(_startTime);
+
+      final response = await http.post(
+        Uri.parse("http://10.0.2.2:3000/workouts"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "training_name": widget.workoutName.isEmpty
+              ? "Custom Workout"
+              : widget.workoutName,
+          "duration_minutes": duration.inMinutes,
+          "shots": shotResults
+              .map(
+                (result) => {
+                  "zone_id": _zoneIdByName[result.position.name],
+                  "makes": result.makes,
+                  "attempts": result.attempts,
+                },
+              )
+              .toList(),
+        }),
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode != 200) {
+        setState(() => _isSaving = false);
+
+        if (response.statusCode == 401 || response.statusCode == 403) {
+          _showError("Your session expired. Please log in again.");
+          return;
+        }
+
+        _showError("Could not save workout. ${response.body}");
+        return;
+      }
+
+      final data = jsonDecode(response.body);
+
+      _timer?.cancel();
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TrainingSummaryScreen(
+            totalShots: data["total_shots"],
+            madeShots: data["made_shots"],
+            missedShots: data["missed_shots"],
+            percentage: data["percentage"],
+            results: shotResults,
+            duration: duration,
+            workoutName: data["training_name"] ?? widget.workoutName,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() => _isSaving = false);
+
+      _showError("Could not save workout. Check your connection.");
+    }
   }
 
   @override
@@ -571,7 +682,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
               Expanded(
                 flex: 2,
                 child: ElevatedButton(
-                  onPressed: isInvalid
+                  onPressed: (isInvalid || _isSaving)
                       ? null
                       : () {
                           if (!isLastPosition) {
@@ -593,13 +704,22 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: Text(
-                    isLastPosition ? "FINISH WORKOUT" : "NEXT POSITION",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          isLastPosition ? "FINISH WORKOUT" : "NEXT POSITION",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                 ),
               ),
             ],
