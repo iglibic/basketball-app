@@ -35,6 +35,12 @@ class _CustomWorkoutScreenState extends State<CustomWorkoutScreen> {
     });
   }
 
+  @override
+  void dispose() {
+    workoutNameController.dispose();
+    super.dispose();
+  }
+
   void showAddPositionSheet() {
     showModalBottomSheet(
       context: context,
@@ -577,6 +583,8 @@ class _CustomWorkoutScreenState extends State<CustomWorkoutScreen> {
                               MaterialPageRoute(
                                 builder: (_) => WorkoutScreen(
                                   positions: selectedPresetPositions,
+                                  workoutName: workoutNameController.text
+                                      .trim(),
                                 ),
                               ),
                             );
@@ -593,8 +601,11 @@ class _CustomWorkoutScreenState extends State<CustomWorkoutScreen> {
                     ),
 
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF121A33),
-                      foregroundColor: const Color(0xFF7B83A5),
+                      elevation: 0,
+                      backgroundColor: const Color(0xFF7C4DFF),
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: const Color(0xFF121A33),
+                      disabledForegroundColor: const Color(0xFF7B83A5),
                       minimumSize: const Size.fromHeight(58),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -603,14 +614,16 @@ class _CustomWorkoutScreenState extends State<CustomWorkoutScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 10),
+                if (selectedPresetPositions.isEmpty) ...[
+                  const SizedBox(height: 10),
 
-                const Center(
-                  child: Text(
-                    "Add at least one position to start.",
-                    style: TextStyle(color: Colors.white38),
+                  const Center(
+                    child: Text(
+                      "Add at least one position to start.",
+                      style: TextStyle(color: Colors.white38),
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
