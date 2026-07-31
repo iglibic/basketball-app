@@ -289,14 +289,26 @@ app.post("/shots", authMiddleware, async (req, res) => {
   try {
     const user_id = req.user.user_id;
 
-    const { training_id, zone_id, made } = req.body;
+    const { training_id, zone_id, makes, attempts } = req.body;
 
-    if (training_id === undefined || zone_id === undefined || made === undefined) {
-      return res.status(400).send("Training ID, zone ID and made status are required!");
+    if (training_id === undefined || zone_id === undefined || makes === undefined || attempts === undefined) {
+      return res.status(400).send("Training ID, zone ID, makes and attempts are required!");
     }
 
-    if (typeof made !== "boolean") {
-      return res.status(400).send("Made status must be a boolean!");
+    if (typeof makes !== "number" || typeof attempts !== "number") {
+      return res.status(400).send("Makes and attempts must be numbers!");
+    }
+
+    if (makes < 0) {
+      return res.status(400).send("Makes cannot be negative!");
+    }
+
+    if (attempts < 0) {
+      return res.status(400).send("Attempts cannot be negative!");
+    }
+
+    if (attempts < makes) {
+      return res.status(400).send("Attempts must be greater than or equal to makes!");
     }
 
     const trainingCheck = await pool.query(
@@ -319,16 +331,21 @@ app.post("/shots", authMiddleware, async (req, res) => {
 
     const newShot = await pool.query(
       `INSERT INTO shots 
-      (training_id, zone_id, made)
-      VALUES ($1, $2, $3)
+      (training_id, zone_id, makes, attempts)
+      VALUES ($1, $2, $3, $4)
       RETURNING *`,
-      [training_id, zone_id, made]
+      [training_id, zone_id, makes, attempts]
     );
 
     res.json(newShot.rows[0]);
 
   } catch (err) {
     console.error(err);
+
+    if (err.code === "23505") {
+      return res.status(409).send("A shot record for this training and zone already exists! Use PUT to update.");
+    }
+
     res.status(500).send("Server error!");
   }
 });
@@ -353,7 +370,7 @@ app.get("/trainings/:trainingId/shots", authMiddleware, async (req, res) => {
     FROM shots s
     JOIN zones z ON s.zone_id = z.zone_id
     WHERE s.training_id = $1
-    ORDER BY s.shot_order ASC, s.shot_time ASC`,
+    ORDER BY z.display_order`,
       [trainingId]
     );
 
@@ -416,9 +433,8 @@ app.get("/trainings/:trainingId/stats", authMiddleware, async (req, res) => {
     const stats = await pool.query(
       `SELECT
       training_id,
-      COUNT(*) AS total_shots,
-      COUNT(*) FILTER (WHERE made = true) AS made_shots,
-      COUNT(*) FILTER (WHERE made = false) AS missed_shots
+      COALESCE(SUM(attempts), 0) AS total_attempts,
+      COALESCE(SUM(makes), 0) AS made_shots
       FROM shots
       WHERE training_id = $1
       GROUP BY training_id`,
@@ -437,9 +453,9 @@ app.get("/trainings/:trainingId/stats", authMiddleware, async (req, res) => {
 
     const statsData = stats.rows[0];
 
-    const total_shots = Number(statsData.total_shots);
+    const total_shots = Number(statsData.total_attempts);
     const made_shots = Number(statsData.made_shots);
-    const missed_shots = Number(statsData.missed_shots);
+    const missed_shots = total_shots - made_shots;
 
     let percentage = 0;
 
@@ -481,9 +497,9 @@ app.get("/trainings/:trainingId/zone-stats", authMiddleware, async (req, res) =>
       `SELECT
         z.zone_id,
         z.zone_name,
-        COUNT(*) AS total_shots,
-        COUNT(*) FILTER (WHERE s.made = true) AS made_shots,
-        COUNT(*) FILTER (WHERE s.made = false) AS missed_shots
+        COALESCE(SUM(s.attempts), 0) AS total_shots,
+        COALESCE(SUM(s.makes), 0) AS made_shots,
+        COALESCE(SUM(s.attempts), 0) - COALESCE(SUM(s.makes), 0) AS missed_shots
        FROM shots s
        JOIN zones z ON s.zone_id = z.zone_id
        WHERE s.training_id = $1
@@ -567,14 +583,26 @@ app.put("/shots/:shotId", authMiddleware, async (req, res) => {
   try {
     const user_id = req.user.user_id;
     const { shotId } = req.params;
-    const { made } = req.body;
+    const { makes, attempts } = req.body;
 
-    if (made === undefined) {
-      return res.status(400).send("Made status is required!");
+    if (makes === undefined || attempts === undefined) {
+      return res.status(400).send("Makes and attempts are required!");
     }
 
-    if (typeof made !== "boolean") {
-      return res.status(400).send("Made status must be a boolean!");
+    if (typeof makes !== "number" || typeof attempts !== "number") {
+      return res.status(400).send("Makes and attempts must be numbers!");
+    }
+
+    if (makes < 0) {
+      return res.status(400).send("Makes cannot be negative!");
+    }
+
+    if (attempts < 0) {
+      return res.status(400).send("Attempts cannot be negative!");
+    }
+
+    if (attempts < makes) {
+      return res.status(400).send("Attempts must be greater than or equal to makes!");
     }
 
     const shotCheck = await pool.query(
@@ -590,8 +618,8 @@ app.put("/shots/:shotId", authMiddleware, async (req, res) => {
     }
 
     const updatedShot = await pool.query(
-      "UPDATE shots SET made = $1 WHERE shot_id = $2 RETURNING *",
-      [made, shotId]
+      "UPDATE shots SET makes = $1, attempts = $2 WHERE shot_id = $3 RETURNING *",
+      [makes, attempts, shotId]
     );
 
     res.json(updatedShot.rows[0]);
@@ -741,8 +769,8 @@ app.get("/global-stats", authMiddleware, async (req, res) => {
       `SELECT
         z.zone_id,
         z.zone_name,
-        COUNT(*) AS total_shots,
-        COUNT(*) FILTER (WHERE s.made = true) AS made_shots
+        COALESCE(SUM(s.attempts), 0) AS total_shots,
+        COALESCE(SUM(s.makes), 0) AS made_shots
        FROM shots s
        JOIN zones z
        ON s.zone_id = z.zone_id
@@ -774,8 +802,8 @@ app.get("/global-stats", authMiddleware, async (req, res) => {
 
     const overall = await pool.query(
       `SELECT
-       COUNT(*) AS total_shots,
-       COUNT(*) FILTER (WHERE made = true) AS made_shots
+       COALESCE(SUM(attempts), 0) AS total_shots,
+       COALESCE(SUM(makes), 0) AS made_shots
        FROM shots`
     );
 
@@ -809,8 +837,8 @@ app.get("/my-stats", authMiddleware, async (req, res) => {
 
     const stats = await pool.query(
       `SELECT
-        COUNT(*) AS total_shots,
-        COUNT(*) FILTER (WHERE s.made = true) AS made_shots
+        COALESCE(SUM(s.attempts), 0) AS total_shots,
+        COALESCE(SUM(s.makes), 0) AS made_shots
        FROM shots s
        JOIN trainings t
        ON s.training_id = t.training_id
@@ -905,15 +933,15 @@ app.get("/recent-workouts", authMiddleware, async (req, res) => {
         t.training_name,
         t.started_at,
 
-        COUNT(s.shot_id) AS total_shots,
+        COALESCE(SUM(s.attempts), 0) AS total_shots,
 
-        COUNT(*) FILTER (WHERE s.made = true) AS made_shots,
+        COALESCE(SUM(s.makes), 0) AS made_shots,
 
         CASE
-          WHEN COUNT(s.shot_id) = 0 THEN 0
+          WHEN COALESCE(SUM(s.attempts), 0) = 0 THEN 0
           ELSE ROUND(
-            COUNT(*) FILTER (WHERE s.made = true) * 100.0
-            / COUNT(s.shot_id)
+            COALESCE(SUM(s.makes), 0) * 100.0
+            / COALESCE(SUM(s.attempts), 0)
           )
         END AS percentage
 
@@ -1093,13 +1121,13 @@ app.get("/all-trainings", authMiddleware, async (req, res) => {
         t.finished_at,
         t.duration_minutes,
 
-        COUNT(s.shot_id) AS total_shots,
+        COALESCE(SUM(s.attempts), 0) AS total_shots,
 
         CASE
-          WHEN COUNT(s.shot_id) = 0 THEN 0
+          WHEN COALESCE(SUM(s.attempts), 0) = 0 THEN 0
           ELSE ROUND(
-            COUNT(*) FILTER (WHERE s.made = true) * 100.0
-            / COUNT(s.shot_id)
+            COALESCE(SUM(s.makes), 0) * 100.0
+            / COALESCE(SUM(s.attempts), 0)
           )
         END AS percentage
 

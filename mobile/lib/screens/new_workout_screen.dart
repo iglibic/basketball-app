@@ -11,6 +11,7 @@ class NewWorkoutScreen extends StatelessWidget {
       backgroundColor: const Color(0xFF0D1224),
 
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFF0D1224),
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),

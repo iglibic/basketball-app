@@ -56,16 +56,15 @@ CREATE TABLE trainings(
 );
 
 CREATE TABLE shots(
-	shot_id SERIAL PRIMARY KEY,
-	training_id INT NOT NULL,
-	zone_id INT NOT NULL,
-	made BOOLEAN NOT NULL,
-	shot_order INT CHECK (shot_order IS NULL OR shot_order > 0),
+    shot_id SERIAL PRIMARY KEY,
+    training_id INT NOT NULL,
+    zone_id INT NOT NULL,
+    makes INT NOT NULL CHECK (makes >= 0),
+	attempts INT NOT NULL CHECK (attempts >= 0 AND attempts >= makes),    
 	notes TEXT,
-	shot_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	FOREIGN KEY (training_id) REFERENCES trainings(training_id) ON DELETE CASCADE,
-	FOREIGN KEY (zone_id) REFERENCES zones(zone_id) ON DELETE RESTRICT,
-	UNIQUE (training_id, shot_order)
+    FOREIGN KEY (training_id) REFERENCES trainings(training_id) ON DELETE CASCADE,
+    FOREIGN KEY (zone_id) REFERENCES zones(zone_id) ON DELETE RESTRICT,
+    UNIQUE(training_id, zone_id)
 );
 
 CREATE TABLE template_zones(
@@ -94,8 +93,6 @@ CREATE INDEX idx_trainings_user ON trainings(user_id);
 CREATE INDEX idx_trainings_template ON trainings(template_id);
 
 CREATE INDEX idx_shots_training ON shots(training_id);
-CREATE INDEX idx_shots_zone ON shots(zone_id);
-CREATE INDEX idx_shots_training_zone ON shots(training_id, zone_id);
 
 CREATE INDEX idx_template_zones_template ON template_zones(template_id);
 
