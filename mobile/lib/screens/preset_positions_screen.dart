@@ -25,137 +25,144 @@ class _PresetPositionsScreenState extends State<PresetPositionsScreen> {
     super.initState();
 
     selectedPositions.addAll(widget.initiallySelected.map((e) => e.name));
-    debugPrint("Initial: ${selectedPositions.join(", ")}");
 
     searchController.addListener(() {
       setState(() {});
     });
   }
 
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  /// courtX / courtY su frakcije (0..1) slike terena assets/court/half_court.png.
+  /// Slika je landscape (3:2), kos je gore na sredini, a centarska linija dolje.
   final List<PresetPosition> positions = [
     // 3PT
     PresetPosition(
       name: "Left Corner 3",
       category: "3PT",
-      description: "Three-point shot from the left corner.",
-      courtX: 0.14,
-      courtY: 0.88,
+      description: "Three-point shot from the left corner, along the baseline.",
+      courtX: 0.15,
+      courtY: 0.11,
     ),
 
     PresetPosition(
       name: "Right Corner 3",
       category: "3PT",
-      description: "",
-      courtX: 0.86,
-      courtY: 0.88,
+      description: "Three-point shot from the right corner, along the baseline.",
+      courtX: 0.85,
+      courtY: 0.11,
     ),
 
     PresetPosition(
       name: "Left Wing 3",
       category: "3PT",
-      description: "",
-      courtX: 0.24,
-      courtY: 0.58,
+      description: "Three-point shot from the left wing, above the break.",
+      courtX: 0.23,
+      courtY: 0.52,
     ),
 
     PresetPosition(
       name: "Right Wing 3",
       category: "3PT",
-      description: "",
-      courtX: 0.76,
-      courtY: 0.58,
+      description: "Three-point shot from the right wing, above the break.",
+      courtX: 0.77,
+      courtY: 0.52,
     ),
 
     PresetPosition(
       name: "Top of the Key",
       category: "3PT",
-      description: "",
+      description: "Three-point shot straight on, at the top of the arc.",
       courtX: 0.50,
-      courtY: 0.42,
+      courtY: 0.74,
     ),
 
     // Mid Range
     PresetPosition(
       name: "Left Elbow",
       category: "Mid",
-      description: "",
-      courtX: 0.34,
-      courtY: 0.34,
+      description: "Midrange shot from the left corner of the free throw line.",
+      courtX: 0.36,
+      courtY: 0.51,
     ),
 
     PresetPosition(
       name: "Right Elbow",
       category: "Mid",
-      description: "",
-      courtX: 0.66,
-      courtY: 0.34,
+      description: "Midrange shot from the right corner of the free throw line.",
+      courtX: 0.64,
+      courtY: 0.51,
     ),
 
     PresetPosition(
       name: "Left Baseline",
       category: "Mid",
-      description: "",
-      courtX: 0.18,
-      courtY: 0.22,
+      description: "Midrange shot from the left baseline, outside the paint.",
+      courtX: 0.24,
+      courtY: 0.13,
     ),
 
     PresetPosition(
       name: "Right Baseline",
       category: "Mid",
-      description: "",
-      courtX: 0.82,
-      courtY: 0.22,
+      description: "Midrange shot from the right baseline, outside the paint.",
+      courtX: 0.76,
+      courtY: 0.13,
     ),
 
     PresetPosition(
       name: "Nail",
       category: "Mid",
-      description: "",
+      description: "Midrange shot from just behind the free throw line.",
       courtX: 0.50,
-      courtY: 0.28,
+      courtY: 0.63,
     ),
 
     // Paint
     PresetPosition(
       name: "Left Block",
       category: "Paint",
-      description: "",
-      courtX: 0.40,
-      courtY: 0.16,
+      description: "Close range shot from the left low post block.",
+      courtX: 0.385,
+      courtY: 0.21,
     ),
 
     PresetPosition(
       name: "Right Block",
       category: "Paint",
-      description: "",
-      courtX: 0.60,
-      courtY: 0.16,
+      description: "Close range shot from the right low post block.",
+      courtX: 0.615,
+      courtY: 0.21,
     ),
 
     PresetPosition(
       name: "Restricted Area",
       category: "Paint",
-      description: "",
+      description: "Finish at the rim, inside the restricted area.",
       courtX: 0.50,
-      courtY: 0.08,
+      courtY: 0.17,
     ),
 
     // FT
     PresetPosition(
       name: "Free Throw",
       category: "FT",
-      description: "",
+      description: "Free throw from the line.",
       courtX: 0.50,
-      courtY: 0.22,
+      courtY: 0.53,
     ),
 
     // Other
     PresetPosition(
       name: "Half Court",
       category: "Other",
-      description: "",
+      description: "Long range shot from around the half court line.",
       courtX: 0.50,
-      courtY: 0.98,
+      courtY: 0.91,
     ),
   ];
 
