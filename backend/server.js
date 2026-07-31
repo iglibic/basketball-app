@@ -416,6 +416,117 @@ app.put("/trainings/:trainingId/finish", authMiddleware, async (req, res) => {
   }
 });
 
+app.post("/workouts", authMiddleware, async (req, res) => {
+  const user_id = req.user.user_id;
+
+  const { training_name, duration_minutes, shots } = req.body;
+
+  if (!training_name) {
+    return res.status(400).send("Training name is required!");
+  }
+
+  if (!Array.isArray(shots) || shots.length === 0) {
+    return res.status(400).send("At least one shot record is required!");
+  }
+
+  if (duration_minutes !== undefined && duration_minutes !== null) {
+    if (typeof duration_minutes !== "number" || duration_minutes < 0) {
+      return res.status(400).send("Duration must be a positive number!");
+    }
+  }
+
+  for (const shot of shots) {
+    const { zone_id, makes, attempts } = shot;
+
+    if (zone_id === undefined || makes === undefined || attempts === undefined) {
+      return res
+        .status(400)
+        .send("Zone ID, makes and attempts are required for every shot!");
+    }
+
+    if (typeof makes !== "number" || typeof attempts !== "number") {
+      return res.status(400).send("Makes and attempts must be numbers!");
+    }
+
+    if (makes < 0 || attempts < 0) {
+      return res.status(400).send("Makes and attempts cannot be negative!");
+    }
+
+    if (attempts < makes) {
+      return res
+        .status(400)
+        .send("Attempts must be greater than or equal to makes!");
+    }
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const newTraining = await client.query(
+      `INSERT INTO trainings
+      (user_id, training_name, finished_at, duration_minutes)
+      VALUES ($1, $2, CURRENT_TIMESTAMP, $3)
+      RETURNING *`,
+      [user_id, training_name, duration_minutes ?? null]
+    );
+
+    const training = newTraining.rows[0];
+
+    for (const shot of shots) {
+      await client.query(
+        `INSERT INTO shots
+        (training_id, zone_id, makes, attempts)
+        VALUES ($1, $2, $3, $4)`,
+        [training.training_id, shot.zone_id, shot.makes, shot.attempts]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    const total_shots = shots.reduce((sum, shot) => sum + shot.attempts, 0);
+    const made_shots = shots.reduce((sum, shot) => sum + shot.makes, 0);
+
+    let percentage = 0;
+
+    if (total_shots > 0) {
+      percentage = Math.round(
+        (made_shots / total_shots) * 100
+      );
+    }
+
+    res.json({
+      training_id: training.training_id,
+      training_name: training.training_name,
+      started_at: training.started_at,
+      finished_at: training.finished_at,
+      duration_minutes: training.duration_minutes,
+      total_shots,
+      made_shots,
+      missed_shots: total_shots - made_shots,
+      percentage
+    });
+
+  } catch (err) {
+    await client.query("ROLLBACK");
+
+    console.error(err);
+
+    if (err.code === "23503") {
+      return res.status(404).send("Zone not found!");
+    }
+
+    if (err.code === "23505") {
+      return res.status(400).send("A zone can only appear once in a workout!");
+    }
+
+    res.status(500).send("Server error!");
+  } finally {
+    client.release();
+  }
+});
+
 app.get("/trainings/:trainingId/stats", authMiddleware, async (req, res) => {
   try {
     const user_id = req.user.user_id;
