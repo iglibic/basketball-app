@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Aplikacija komunicira s backendom preko HTTP-a, pa je INTERNET
+         dozvola potrebna i u release buildu (debug/profile manifesti je
+         dodaju automatski, release ne). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:label="mobile"
         android:name="${applicationName}"
