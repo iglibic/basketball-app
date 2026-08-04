@@ -527,6 +527,31 @@ app.post("/workouts", authMiddleware, async (req, res) => {
   }
 });
 
+app.delete("/trainings/:trainingId", authMiddleware, async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+    const { trainingId } = req.params;
+
+    // Shots se brisu kaskadno (ON DELETE CASCADE)
+    const deletedTraining = await pool.query(
+      `DELETE FROM trainings
+       WHERE training_id = $1 AND user_id = $2
+       RETURNING *`,
+      [trainingId, user_id]
+    );
+
+    if (deletedTraining.rows.length === 0) {
+      return res.status(404).send("Training not found!");
+    }
+
+    res.json(deletedTraining.rows[0]);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error!");
+  }
+});
+
 app.get("/trainings/:trainingId/stats", authMiddleware, async (req, res) => {
   try {
     const user_id = req.user.user_id;
