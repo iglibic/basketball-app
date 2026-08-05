@@ -1023,6 +1023,64 @@ app.get("/my-stats", authMiddleware, async (req, res) => {
   }
 });
 
+app.get("/my-zone-stats", authMiddleware, async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+
+    // Vraca samo zone iz kojih je korisnik stvarno sutirao.
+    // x_position / y_position sluze za prikaz na terenu.
+    const stats = await pool.query(
+      `SELECT
+        z.zone_id,
+        z.zone_name,
+        z.x_position,
+        z.y_position,
+        COALESCE(SUM(s.attempts), 0) AS total_shots,
+        COALESCE(SUM(s.makes), 0) AS made_shots
+       FROM shots s
+       JOIN zones z
+       ON s.zone_id = z.zone_id
+       JOIN trainings t
+       ON s.training_id = t.training_id
+       WHERE t.user_id = $1
+       GROUP BY z.zone_id, z.zone_name, z.x_position, z.y_position, z.display_order
+       ORDER BY z.display_order`,
+      [user_id]
+    );
+
+    const zones = stats.rows.map((row) => {
+
+      const total_shots = Number(row.total_shots);
+      const made_shots = Number(row.made_shots);
+
+      let percentage = 0;
+
+      if (total_shots > 0) {
+        percentage = Math.round(
+          (made_shots / total_shots) * 100
+        );
+      }
+
+      return {
+        zone_id: row.zone_id,
+        zone_name: row.zone_name,
+        x_position: Number(row.x_position),
+        y_position: Number(row.y_position),
+        total_shots,
+        made_shots,
+        missed_shots: total_shots - made_shots,
+        percentage
+      };
+    });
+
+    res.json({ zones });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error!");
+  }
+});
+
 app.get("/me", authMiddleware, async (req, res) => {
   try {
     const result = await pool.query(
