@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'home_screen.dart';
 import 'new_workout_screen.dart';
+import 'stats_screen.dart';
 import 'welcome_screen.dart';
 import 'profile_screen.dart';
 
@@ -178,23 +179,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class StatsScreen extends StatelessWidget {
-  const StatsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFF0D1224),
-      body: Center(
-        child: Text(
-          "Stats",
-          style: TextStyle(color: Colors.white, fontSize: 24),
         ),
       ),
     );
