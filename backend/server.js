@@ -7,8 +7,28 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const multer = require("multer");
 const path = require("path");
+const crypto = require("crypto");
+const rateLimit = require("express-rate-limit");
 
 const app = express();
+
+// Ogranicava pokusaje na osjetljivim rutama (prijava, reset lozinke),
+// da se kod od 6 znamenki i lozinke ne mogu pogadjati.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many attempts. Please try again later." },
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many accounts created. Please try again later." },
+});
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -43,7 +63,47 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage });
+// Dozvoljene su samo slike i najvise 5 MB, da se izbjegne
+// spremanje proizvoljnih datoteka koje se posluzuju iz /uploads.
+const allowedImageTypes = ["image/jpeg", "image/png", "image/webp"];
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!allowedImageTypes.includes(file.mimetype)) {
+      return cb(new Error("Only JPEG, PNG and WEBP images are allowed!"));
+    }
+
+    cb(null, true);
+  },
+});
+
+/// Jedno mjesto za pravila lozinke, koristi se pri registraciji,
+/// promjeni i resetiranju lozinke.
+function validatePassword(password) {
+  if (!password || password.length < 8) {
+    return "Password must be at least 8 characters!";
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    return "Password must contain at least one uppercase letter!";
+  }
+
+  if (!/[0-9]/.test(password)) {
+    return "Password must contain at least one number!";
+  }
+
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+    return "Password must contain at least one special character!";
+  }
+
+  return null;
+}
+
+function isValidEmail(email) {
+  return typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
 
 app.use(express.json());
 
@@ -55,28 +115,27 @@ app.get("/", (req, res) => {
   res.send("Basketball App API running...");
 });
 
-app.get("/zones", async (req, res) => {
-  try {
-    const zones = await pool.query(
-      `SELECT * 
-      FROM zones 
-      ORDER BY display_order`
-    );
-
-    res.json(zones.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error!" });
-  }
-});
-
-app.post("/register", async (req, res) => {
+app.post("/register", registerLimiter, async (req, res) => {
   try {
     const { first_name, last_name, nickname, email, password } = req.body;
 
 
     if (!first_name || !last_name || !nickname || !email || !password) {
       return res.status(400).json({ message: "All fields are required!" });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: "Please enter a valid email address!" });
+    }
+
+    if (nickname.trim().length < 4) {
+      return res.status(400).json({ message: "Nickname must contain at least 4 characters!" });
+    }
+
+    const passwordError = validatePassword(password);
+
+    if (passwordError) {
+      return res.status(400).json({ message: passwordError });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -168,7 +227,7 @@ app.get("/verify/:token", async (req, res) => {
   }
 });
 
-app.post("/login", async (req, res) => {
+app.post("/login", authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -187,13 +246,15 @@ app.post("/login", async (req, res) => {
 
     const user = userResult.rows[0];
 
-    if (!user.is_verified) {
-      return res.status(403).json({ message: "Please verify your email first!" });
-    }
-
+    // Lozinka se provjerava prije statusa verifikacije, inace bi odgovor
+    // otkrivao postoji li racun s tim emailom.
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid email or password!" });
+    }
+
+    if (!user.is_verified) {
+      return res.status(403).json({ message: "Please verify your email first!" });
     }
 
     const token = jwt.sign(
@@ -1463,7 +1524,7 @@ app.get("/recent-workouts", authMiddleware, async (req, res) => {
 });
 
 
-app.post("/forgot-password", async (req, res) => {
+app.post("/forgot-password", authLimiter, async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -1472,13 +1533,14 @@ app.post("/forgot-password", async (req, res) => {
       [email]
     );
 
+    // Odgovor je uvijek isti, da se ne moze zakljuciti postoji li racun.
     if (userResult.rows.length === 0) {
-      return res.status(404).json({ message: "User not found!" });
+      return res.json({
+        message: "If that email is registered, a reset code has been sent.",
+      });
     }
 
-    const resetCode =
-      Math.floor(100000 + Math.random() * 900000)
-        .toString();
+    const resetCode = crypto.randomInt(100000, 1000000).toString();
 
     const expires = new Date(
       Date.now() + 10 * 60 * 1000
@@ -1507,14 +1569,16 @@ app.post("/forgot-password", async (req, res) => {
       `,
     });
 
-    res.send("Reset code sent!");
+    res.json({
+      message: "If that email is registered, a reset code has been sent.",
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error!" });
   }
 });
 
-app.post("/verify-reset-code", async (req, res) => {
+app.post("/verify-reset-code", authLimiter, async (req, res) => {
   try {
     const { email, code } = req.body;
 
@@ -1549,7 +1613,7 @@ app.post("/verify-reset-code", async (req, res) => {
   }
 });
 
-app.post("/reset-password", async (req, res) => {
+app.post("/reset-password", authLimiter, async (req, res) => {
   try {
     const {
       email,
@@ -1562,21 +1626,28 @@ app.post("/reset-password", async (req, res) => {
       [email]
     );
 
+    const passwordError = validatePassword(newPassword);
+
+    if (passwordError) {
+      return res.status(400).json({ message: passwordError });
+    }
+
+    // Neispravan email i neispravan kod daju istu poruku.
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: "User not found!" });
+      return res.status(400).json({ message: "Invalid or expired code!" });
     }
 
     const user = result.rows[0];
 
-    if (user.reset_code !== code) {
-      return res.status(400).json({ message: "Invalid code!" });
+    if (!user.reset_code || user.reset_code !== code) {
+      return res.status(400).json({ message: "Invalid or expired code!" });
     }
 
     if (
       !user.reset_code_expires ||
       new Date(user.reset_code_expires) < new Date()
     ) {
-      return res.status(400).json({ message: "Code expired!" });
+      return res.status(400).json({ message: "Invalid or expired code!" });
     }
 
     const hashedPassword =
@@ -1658,10 +1729,10 @@ app.put("/change-password", authMiddleware, async (req, res) => {
       });
     }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({
-        message: "Password must be at least 6 characters long",
-      });
+    const passwordError = validatePassword(newPassword);
+
+    if (passwordError) {
+      return res.status(400).json({ message: passwordError });
     }
 
     const users = await pool.query(
@@ -1683,30 +1754,6 @@ app.put("/change-password", authMiddleware, async (req, res) => {
     if (!validPassword) {
       return res.status(400).json({
         message: "Current password is incorrect!",
-      });
-    }
-
-    if (newPassword.length < 8) {
-      return res.status(400).json({
-        message: "Password must be at least 8 characters!",
-      });
-    }
-
-    if (!/[A-Z]/.test(newPassword)) {
-      return res.status(400).json({
-        message: "Password must contain at least one uppercase letter!",
-      });
-    }
-
-    if (!/[0-9]/.test(newPassword)) {
-      return res.status(400).json({
-        message: "Password must contain at least one number!",
-      });
-    }
-
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(newPassword)) {
-      return res.status(400).json({
-        message: "Password must contain at least one special character!",
       });
     }
 
@@ -1801,6 +1848,11 @@ app.post("/upload-profile-image", authMiddleware, upload.single("image"),
   async (req, res) => {
     try {
       const userId = req.user.user_id;
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No image was uploaded!" });
+      }
+
       const newImagePath = `/uploads/${req.file.filename}`;
 
       const oldUser = await pool.query(
@@ -1874,6 +1926,25 @@ app.delete("/delete-profile-image", authMiddleware, async (req, res) => {
   }
 });
 
+
+// Greske iz multera (prevelika datoteka, nedozvoljen tip) inace zavrse
+// kao 500, pa ih pretvaramo u jasnu poruku.
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({ message: "Image must be 5 MB or smaller!" });
+    }
+
+    return res.status(400).json({ message: "Could not upload the image!" });
+  }
+
+  if (err) {
+    console.error(err);
+    return res.status(400).json({ message: err.message });
+  }
+
+  next();
+});
 
 function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
