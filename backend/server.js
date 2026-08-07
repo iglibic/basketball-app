@@ -419,10 +419,26 @@ app.put("/trainings/:trainingId/finish", authMiddleware, async (req, res) => {
 app.post("/workouts", authMiddleware, async (req, res) => {
   const user_id = req.user.user_id;
 
-  const { training_name, duration_minutes, shots } = req.body;
+  const { training_name, duration_minutes, shots, template_id } = req.body;
 
   if (!training_name) {
     return res.status(400).send("Training name is required!");
+  }
+
+  if (template_id !== undefined && template_id !== null) {
+    if (typeof template_id !== "number") {
+      return res.status(400).send("Template ID must be a number!");
+    }
+
+    const templateCheck = await pool.query(
+      `SELECT template_id FROM training_templates
+       WHERE template_id = $1 AND (is_public = true OR creator_user_id = $2)`,
+      [template_id, user_id]
+    );
+
+    if (templateCheck.rows.length === 0) {
+      return res.status(404).send("Template not found!");
+    }
   }
 
   if (!Array.isArray(shots) || shots.length === 0) {
@@ -466,10 +482,10 @@ app.post("/workouts", authMiddleware, async (req, res) => {
 
     const newTraining = await client.query(
       `INSERT INTO trainings
-      (user_id, training_name, finished_at, duration_minutes)
-      VALUES ($1, $2, CURRENT_TIMESTAMP, $3)
+      (user_id, training_name, template_id, finished_at, duration_minutes)
+      VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4)
       RETURNING *`,
-      [user_id, training_name, duration_minutes ?? null]
+      [user_id, training_name, template_id ?? null, duration_minutes ?? null]
     );
 
     const training = newTraining.rows[0];
@@ -771,9 +787,23 @@ app.get("/templates", authMiddleware, async (req, res) => {
     const user_id = req.user.user_id;
 
     const templates = await pool.query(
-      `SELECT * FROM training_templates
-       WHERE is_public = true OR creator_user_id = $1
-       ORDER BY created_at DESC`,
+      `SELECT
+        t.template_id,
+        t.template_name,
+        t.description,
+        t.total_shots,
+        t.is_public,
+        t.created_at,
+        t.creator_user_id,
+        (t.creator_user_id = $1) AS is_mine,
+        u.nickname AS creator_nickname,
+        COUNT(tz.template_zone_id)::int AS zone_count
+       FROM training_templates t
+       LEFT JOIN users u ON u.user_id = t.creator_user_id
+       LEFT JOIN template_zones tz ON tz.template_id = t.template_id
+       WHERE t.is_public = true OR t.creator_user_id = $1
+       GROUP BY t.template_id, u.nickname
+       ORDER BY t.created_at DESC`,
       [user_id]
     );
 
@@ -785,39 +815,114 @@ app.get("/templates", authMiddleware, async (req, res) => {
   }
 });
 
+/// Provjerava zajednicki oblik podataka za kreiranje i uredivanje predloska.
+/// Vraca poruku greske ili null ako je sve u redu.
+function validateTemplateInput(template_name, is_public, zones) {
+  if (!template_name || !template_name.trim()) {
+    return "Template name is required!";
+  }
+
+  if (typeof is_public !== "boolean") {
+    return "is_public must be a boolean!";
+  }
+
+  if (!Array.isArray(zones) || zones.length === 0) {
+    return "At least one zone is required!";
+  }
+
+  const seenZones = new Set();
+
+  for (const zone of zones) {
+    const { zone_id, planned_shots } = zone;
+
+    if (zone_id === undefined || planned_shots === undefined) {
+      return "Zone ID and planned shots are required for every zone!";
+    }
+
+    if (typeof planned_shots !== "number" || planned_shots <= 0) {
+      return "Planned shots must be a positive number!";
+    }
+
+    if (seenZones.has(zone_id)) {
+      return "A zone can only appear once in a template!";
+    }
+
+    seenZones.add(zone_id);
+  }
+
+  return null;
+}
+
+function sumPlannedShots(zones) {
+  return zones.reduce((total, zone) => total + zone.planned_shots, 0);
+}
+
 app.post("/templates", authMiddleware, async (req, res) => {
+  const user_id = req.user.user_id;
+
+  const { template_name, description, is_public, zones } = req.body;
+
+  const validationError = validateTemplateInput(
+    template_name,
+    is_public,
+    zones
+  );
+
+  if (validationError) {
+    return res.status(400).send(validationError);
+  }
+
+  const client = await pool.connect();
+
   try {
-    const user_id = req.user.user_id;
-    const { template_name, total_shots, is_public } = req.body;
+    await client.query("BEGIN");
 
-    if (!template_name || total_shots === undefined || is_public === undefined) {
-      return res.status(400).send("All fields are required!");
-    }
-
-    if (typeof total_shots !== "number" || total_shots <= 0) {
-      return res.status(400).send("Total shots must be a positive number greater than 0!");
-    }
-
-    if (typeof is_public !== "boolean") {
-      return res.status(400).send("is_public must be a boolean!");
-    }
-
-    const newTemplate = await pool.query(
-      `INSERT INTO training_templates 
-      (creator_user_id, template_name, total_shots, is_public)
-      VALUES ($1, $2, $3, $4)
+    // total_shots se uvijek racuna iz zona da se ne moze razici
+    const newTemplate = await client.query(
+      `INSERT INTO training_templates
+      (creator_user_id, template_name, description, total_shots, is_public)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING *`,
-      [user_id, template_name, total_shots, is_public]
+      [
+        user_id,
+        template_name.trim(),
+        description ?? null,
+        sumPlannedShots(zones),
+        is_public
+      ]
     );
 
-    res.json(newTemplate.rows[0]);
+    const template = newTemplate.rows[0];
+
+    for (const zone of zones) {
+      await client.query(
+        `INSERT INTO template_zones
+        (template_id, zone_id, planned_shots)
+        VALUES ($1, $2, $3)`,
+        [template.template_id, zone.zone_id, zone.planned_shots]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    res.json(template);
+
   } catch (err) {
+    await client.query("ROLLBACK");
+
     console.error(err);
+
+    if (err.code === "23503") {
+      return res.status(404).send("Zone not found!");
+    }
 
     if (err.code === "23505") {
       return res.status(400).send("Template with this name already exists!");
     }
+
     res.status(500).send("Server error!");
+  } finally {
+    client.release();
   }
 });
 
@@ -855,12 +960,25 @@ app.post("/templates/:templateId/zones", authMiddleware, async (req, res) => {
     }
 
     const newTemplateZone = await pool.query(
-      `INSERT INTO template_zones 
+      `INSERT INTO template_zones
       (template_id, zone_id, planned_shots)
       VALUES ($1, $2, $3)
       RETURNING *`,
       [templateId, zone_id, planned_shots]
     );
+
+    // total_shots je izveden iz zona, pa ga drzimo u sinkronizaciji
+    await pool.query(
+      `UPDATE training_templates
+       SET total_shots = (
+         SELECT COALESCE(SUM(planned_shots), 0)
+         FROM template_zones
+         WHERE template_id = $1
+       )
+       WHERE template_id = $1`,
+      [templateId]
+    );
+
     res.json(newTemplateZone.rows[0]);
   } catch (err) {
     console.error(err);
@@ -882,19 +1000,207 @@ app.get("/templates/:templateId/zones", authMiddleware, async (req, res) => {
       return res.status(404).send("Template not found!");
     }
 
+    // x_position / y_position omogucuju prikaz zona na terenu
     const zones = await pool.query(
-      `SELECT tz.*, z.zone_name 
-       FROM template_zones tz 
+      `SELECT tz.*, z.zone_name, z.x_position, z.y_position
+       FROM template_zones tz
         JOIN zones z ON tz.zone_id = z.zone_id
         WHERE tz.template_id = $1
         ORDER BY z.display_order`,
       [templateId]
     );
 
-    res.json(zones.rows);
+    // NUMERIC se serijalizira kao string, pa koordinate pretvaramo u brojeve
+    res.json(
+      zones.rows.map((row) => ({
+        ...row,
+        x_position: Number(row.x_position),
+        y_position: Number(row.y_position)
+      }))
+    );
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error!");
+  }
+});
+
+app.put("/templates/:templateId", authMiddleware, async (req, res) => {
+  const user_id = req.user.user_id;
+  const { templateId } = req.params;
+
+  const { template_name, description, is_public, zones } = req.body;
+
+  const validationError = validateTemplateInput(
+    template_name,
+    is_public,
+    zones
+  );
+
+  if (validationError) {
+    return res.status(400).send(validationError);
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const updatedTemplate = await client.query(
+      `UPDATE training_templates
+       SET template_name = $1,
+           description = $2,
+           total_shots = $3,
+           is_public = $4
+       WHERE template_id = $5 AND creator_user_id = $6
+       RETURNING *`,
+      [
+        template_name.trim(),
+        description ?? null,
+        sumPlannedShots(zones),
+        is_public,
+        templateId,
+        user_id
+      ]
+    );
+
+    if (updatedTemplate.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).send("Template not found!");
+    }
+
+    // Zone se zamjenjuju u cijelosti
+    await client.query(
+      "DELETE FROM template_zones WHERE template_id = $1",
+      [templateId]
+    );
+
+    for (const zone of zones) {
+      await client.query(
+        `INSERT INTO template_zones
+        (template_id, zone_id, planned_shots)
+        VALUES ($1, $2, $3)`,
+        [templateId, zone.zone_id, zone.planned_shots]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    res.json(updatedTemplate.rows[0]);
+
+  } catch (err) {
+    await client.query("ROLLBACK");
+
+    console.error(err);
+
+    if (err.code === "23503") {
+      return res.status(404).send("Zone not found!");
+    }
+
+    if (err.code === "23505") {
+      return res.status(400).send("Template with this name already exists!");
+    }
+
+    res.status(500).send("Server error!");
+  } finally {
+    client.release();
+  }
+});
+
+app.delete("/templates/:templateId", authMiddleware, async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+    const { templateId } = req.params;
+
+    // template_zones se brisu kaskadno, treninzi zadrzavaju povijest (SET NULL)
+    const deletedTemplate = await pool.query(
+      `DELETE FROM training_templates
+       WHERE template_id = $1 AND creator_user_id = $2
+       RETURNING *`,
+      [templateId, user_id]
+    );
+
+    if (deletedTemplate.rows.length === 0) {
+      return res.status(404).send("Template not found!");
+    }
+
+    res.json(deletedTemplate.rows[0]);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error!");
+  }
+});
+
+app.post("/templates/:templateId/duplicate", authMiddleware, async (req, res) => {
+  const user_id = req.user.user_id;
+  const { templateId } = req.params;
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // Kopirati se moze vlastiti ili javni predlozak
+    const source = await client.query(
+      `SELECT * FROM training_templates
+       WHERE template_id = $1 AND (is_public = true OR creator_user_id = $2)`,
+      [templateId, user_id]
+    );
+
+    if (source.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).send("Template not found!");
+    }
+
+    const template = source.rows[0];
+
+    // Naziv mora biti jedinstven po korisniku, pa trazimo prvi slobodan
+    const existingNames = await client.query(
+      `SELECT template_name FROM training_templates WHERE creator_user_id = $1`,
+      [user_id]
+    );
+
+    const taken = new Set(
+      existingNames.rows.map((row) => row.template_name)
+    );
+
+    let copyName = `${template.template_name} (copy)`;
+    let counter = 2;
+
+    while (taken.has(copyName)) {
+      copyName = `${template.template_name} (copy ${counter})`;
+      counter++;
+    }
+
+    const newTemplate = await client.query(
+      `INSERT INTO training_templates
+      (creator_user_id, template_name, description, total_shots, is_public)
+      VALUES ($1, $2, $3, $4, false)
+      RETURNING *`,
+      [user_id, copyName, template.description, template.total_shots]
+    );
+
+    const copy = newTemplate.rows[0];
+
+    await client.query(
+      `INSERT INTO template_zones (template_id, zone_id, planned_shots)
+       SELECT $1, zone_id, planned_shots
+       FROM template_zones
+       WHERE template_id = $2`,
+      [copy.template_id, templateId]
+    );
+
+    await client.query("COMMIT");
+
+    res.json(copy);
+
+  } catch (err) {
+    await client.query("ROLLBACK");
+
+    console.error(err);
+    res.status(500).send("Server error!");
+  } finally {
+    client.release();
   }
 });
 
