@@ -66,7 +66,7 @@ app.get("/zones", async (req, res) => {
     res.json(zones.rows);
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -76,7 +76,7 @@ app.post("/register", async (req, res) => {
 
 
     if (!first_name || !last_name || !nickname || !email || !password) {
-      return res.status(400).send("All fields are required!");
+      return res.status(400).json({ message: "All fields are required!" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -132,19 +132,15 @@ app.post("/register", async (req, res) => {
     if (err.code === "23505") {
 
       if (err.detail.includes("(email)")) {
-        return res
-          .status(400)
-          .send("Email already exists.");
+        return res.status(400).json({ message: "Email already exists." });
       }
 
       if (err.detail.includes("(nickname)")) {
-        return res
-          .status(400)
-          .send("Nickname already exists.");
+        return res.status(400).json({ message: "Nickname already exists." });
       }
     }
 
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -168,7 +164,7 @@ app.get("/verify/:token", async (req, res) => {
     res.send("Email verified successfully!");
   } catch (err) {
     console.error(err);
-    res.status(400).send("Invalid or expired token!");
+    res.status(400).json({ message: "Invalid or expired token!" });
   }
 });
 
@@ -177,7 +173,7 @@ app.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).send("Email and password are required!");
+      return res.status(400).json({ message: "Email and password are required!" });
     }
 
     const userResult = await pool.query(
@@ -186,26 +182,24 @@ app.post("/login", async (req, res) => {
     );
 
     if (userResult.rows.length === 0) {
-      return res.status(400).send("Invalid email or password!");
+      return res.status(400).json({ message: "Invalid email or password!" });
     }
 
     const user = userResult.rows[0];
 
     if (!user.is_verified) {
-      return res
-        .status(403)
-        .send("Please verify your email first!");
+      return res.status(403).json({ message: "Please verify your email first!" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
-      return res.status(400).send("Invalid email or password!");
+      return res.status(400).json({ message: "Invalid email or password!" });
     }
 
     const token = jwt.sign(
       { user_id: user.user_id },
       process.env.JWT_SECRET,
-      { expiresIn: "3h" }
+      { expiresIn: "7d" }
     );
 
     res.json({
@@ -221,7 +215,7 @@ app.post("/login", async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -239,7 +233,7 @@ app.get("/zones", authMiddleware, async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -256,7 +250,7 @@ app.get("/trainings", authMiddleware, async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -266,7 +260,7 @@ app.post("/trainings", authMiddleware, async (req, res) => {
     const { training_name, template_id } = req.body;
 
     if (!training_name) {
-      return res.status(400).send("Training name is required!");
+      return res.status(400).json({ message: "Training name is required!" });
     }
 
     const newTraining = await pool.query(
@@ -281,7 +275,7 @@ app.post("/trainings", authMiddleware, async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -292,23 +286,23 @@ app.post("/shots", authMiddleware, async (req, res) => {
     const { training_id, zone_id, makes, attempts } = req.body;
 
     if (training_id === undefined || zone_id === undefined || makes === undefined || attempts === undefined) {
-      return res.status(400).send("Training ID, zone ID, makes and attempts are required!");
+      return res.status(400).json({ message: "Training ID, zone ID, makes and attempts are required!" });
     }
 
     if (typeof makes !== "number" || typeof attempts !== "number") {
-      return res.status(400).send("Makes and attempts must be numbers!");
+      return res.status(400).json({ message: "Makes and attempts must be numbers!" });
     }
 
     if (makes < 0) {
-      return res.status(400).send("Makes cannot be negative!");
+      return res.status(400).json({ message: "Makes cannot be negative!" });
     }
 
     if (attempts < 0) {
-      return res.status(400).send("Attempts cannot be negative!");
+      return res.status(400).json({ message: "Attempts cannot be negative!" });
     }
 
     if (attempts < makes) {
-      return res.status(400).send("Attempts must be greater than or equal to makes!");
+      return res.status(400).json({ message: "Attempts must be greater than or equal to makes!" });
     }
 
     const trainingCheck = await pool.query(
@@ -317,7 +311,7 @@ app.post("/shots", authMiddleware, async (req, res) => {
     );
 
     if (trainingCheck.rows.length === 0) {
-      return res.status(404).send("Training not found!");
+      return res.status(404).json({ message: "Training not found!" });
     }
 
     const zoneCheck = await pool.query(
@@ -326,7 +320,7 @@ app.post("/shots", authMiddleware, async (req, res) => {
     );
 
     if (zoneCheck.rows.length === 0) {
-      return res.status(404).send("Zone not found!");
+      return res.status(404).json({ message: "Zone not found!" });
     }
 
     const newShot = await pool.query(
@@ -343,10 +337,10 @@ app.post("/shots", authMiddleware, async (req, res) => {
     console.error(err);
 
     if (err.code === "23505") {
-      return res.status(409).send("A shot record for this training and zone already exists! Use PUT to update.");
+      return res.status(409).json({ message: "A shot record for this training and zone already exists! Use PUT to update." });
     }
 
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -362,7 +356,7 @@ app.get("/trainings/:trainingId/shots", authMiddleware, async (req, res) => {
     );
 
     if (trainingCheck.rows.length === 0) {
-      return res.status(404).send("Training not found!");
+      return res.status(404).json({ message: "Training not found!" });
     }
 
     const shots = await pool.query(
@@ -378,7 +372,7 @@ app.get("/trainings/:trainingId/shots", authMiddleware, async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -393,11 +387,11 @@ app.put("/trainings/:trainingId/finish", authMiddleware, async (req, res) => {
     );
 
     if (trainingCheck.rows.length === 0) {
-      return res.status(404).send("Training not found!");
+      return res.status(404).json({ message: "Training not found!" });
     }
 
     if (trainingCheck.rows[0].finished_at) {
-      return res.status(400).send("Training is already finished!");
+      return res.status(400).json({ message: "Training is already finished!" });
     }
 
     const finishedTraining = await pool.query(
@@ -412,7 +406,7 @@ app.put("/trainings/:trainingId/finish", authMiddleware, async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -422,12 +416,12 @@ app.post("/workouts", authMiddleware, async (req, res) => {
   const { training_name, duration_minutes, shots, template_id } = req.body;
 
   if (!training_name) {
-    return res.status(400).send("Training name is required!");
+    return res.status(400).json({ message: "Training name is required!" });
   }
 
   if (template_id !== undefined && template_id !== null) {
     if (typeof template_id !== "number") {
-      return res.status(400).send("Template ID must be a number!");
+      return res.status(400).json({ message: "Template ID must be a number!" });
     }
 
     const templateCheck = await pool.query(
@@ -437,17 +431,17 @@ app.post("/workouts", authMiddleware, async (req, res) => {
     );
 
     if (templateCheck.rows.length === 0) {
-      return res.status(404).send("Template not found!");
+      return res.status(404).json({ message: "Template not found!" });
     }
   }
 
   if (!Array.isArray(shots) || shots.length === 0) {
-    return res.status(400).send("At least one shot record is required!");
+    return res.status(400).json({ message: "At least one shot record is required!" });
   }
 
   if (duration_minutes !== undefined && duration_minutes !== null) {
     if (typeof duration_minutes !== "number" || duration_minutes < 0) {
-      return res.status(400).send("Duration must be a positive number!");
+      return res.status(400).json({ message: "Duration must be a positive number!" });
     }
   }
 
@@ -455,23 +449,19 @@ app.post("/workouts", authMiddleware, async (req, res) => {
     const { zone_id, makes, attempts } = shot;
 
     if (zone_id === undefined || makes === undefined || attempts === undefined) {
-      return res
-        .status(400)
-        .send("Zone ID, makes and attempts are required for every shot!");
+      return res.status(400).json({ message: "Zone ID, makes and attempts are required for every shot!" });
     }
 
     if (typeof makes !== "number" || typeof attempts !== "number") {
-      return res.status(400).send("Makes and attempts must be numbers!");
+      return res.status(400).json({ message: "Makes and attempts must be numbers!" });
     }
 
     if (makes < 0 || attempts < 0) {
-      return res.status(400).send("Makes and attempts cannot be negative!");
+      return res.status(400).json({ message: "Makes and attempts cannot be negative!" });
     }
 
     if (attempts < makes) {
-      return res
-        .status(400)
-        .send("Attempts must be greater than or equal to makes!");
+      return res.status(400).json({ message: "Attempts must be greater than or equal to makes!" });
     }
   }
 
@@ -530,14 +520,14 @@ app.post("/workouts", authMiddleware, async (req, res) => {
     console.error(err);
 
     if (err.code === "23503") {
-      return res.status(404).send("Zone not found!");
+      return res.status(404).json({ message: "Zone not found!" });
     }
 
     if (err.code === "23505") {
-      return res.status(400).send("A zone can only appear once in a workout!");
+      return res.status(400).json({ message: "A zone can only appear once in a workout!" });
     }
 
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   } finally {
     client.release();
   }
@@ -557,14 +547,14 @@ app.delete("/trainings/:trainingId", authMiddleware, async (req, res) => {
     );
 
     if (deletedTraining.rows.length === 0) {
-      return res.status(404).send("Training not found!");
+      return res.status(404).json({ message: "Training not found!" });
     }
 
     res.json(deletedTraining.rows[0]);
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -579,7 +569,7 @@ app.get("/trainings/:trainingId/stats", authMiddleware, async (req, res) => {
     );
 
     if (trainingCheck.rows.length === 0) {
-      return res.status(404).send("Training not found!");
+      return res.status(404).json({ message: "Training not found!" });
     }
 
     const stats = await pool.query(
@@ -627,7 +617,7 @@ app.get("/trainings/:trainingId/stats", authMiddleware, async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -642,7 +632,7 @@ app.get("/trainings/:trainingId/zone-stats", authMiddleware, async (req, res) =>
     );
 
     if (trainingCheck.rows.length === 0) {
-      return res.status(404).send("Training not found!");
+      return res.status(404).json({ message: "Training not found!" });
     }
 
     const stats = await pool.query(
@@ -697,7 +687,7 @@ app.get("/trainings/:trainingId/zone-stats", authMiddleware, async (req, res) =>
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -715,7 +705,7 @@ app.delete("/shots/:shotId", authMiddleware, async (req, res) => {
     );
 
     if (shotCheck.rows.length === 0) {
-      return res.status(404).send("Shot not found!");
+      return res.status(404).json({ message: "Shot not found!" });
     }
 
     const deletedShot = await pool.query(
@@ -727,7 +717,7 @@ app.delete("/shots/:shotId", authMiddleware, async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -738,23 +728,23 @@ app.put("/shots/:shotId", authMiddleware, async (req, res) => {
     const { makes, attempts } = req.body;
 
     if (makes === undefined || attempts === undefined) {
-      return res.status(400).send("Makes and attempts are required!");
+      return res.status(400).json({ message: "Makes and attempts are required!" });
     }
 
     if (typeof makes !== "number" || typeof attempts !== "number") {
-      return res.status(400).send("Makes and attempts must be numbers!");
+      return res.status(400).json({ message: "Makes and attempts must be numbers!" });
     }
 
     if (makes < 0) {
-      return res.status(400).send("Makes cannot be negative!");
+      return res.status(400).json({ message: "Makes cannot be negative!" });
     }
 
     if (attempts < 0) {
-      return res.status(400).send("Attempts cannot be negative!");
+      return res.status(400).json({ message: "Attempts cannot be negative!" });
     }
 
     if (attempts < makes) {
-      return res.status(400).send("Attempts must be greater than or equal to makes!");
+      return res.status(400).json({ message: "Attempts must be greater than or equal to makes!" });
     }
 
     const shotCheck = await pool.query(
@@ -766,7 +756,7 @@ app.put("/shots/:shotId", authMiddleware, async (req, res) => {
     );
 
     if (shotCheck.rows.length === 0) {
-      return res.status(404).send("Shot not found!");
+      return res.status(404).json({ message: "Shot not found!" });
     }
 
     const updatedShot = await pool.query(
@@ -778,7 +768,7 @@ app.put("/shots/:shotId", authMiddleware, async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -811,7 +801,7 @@ app.get("/templates", authMiddleware, async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -869,7 +859,7 @@ app.post("/templates", authMiddleware, async (req, res) => {
   );
 
   if (validationError) {
-    return res.status(400).send(validationError);
+    return res.status(400).json({ message: validationError });
   }
 
   const client = await pool.connect();
@@ -913,14 +903,14 @@ app.post("/templates", authMiddleware, async (req, res) => {
     console.error(err);
 
     if (err.code === "23503") {
-      return res.status(404).send("Zone not found!");
+      return res.status(404).json({ message: "Zone not found!" });
     }
 
     if (err.code === "23505") {
-      return res.status(400).send("Template with this name already exists!");
+      return res.status(400).json({ message: "Template with this name already exists!" });
     }
 
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   } finally {
     client.release();
   }
@@ -933,11 +923,11 @@ app.post("/templates/:templateId/zones", authMiddleware, async (req, res) => {
     const { zone_id, planned_shots } = req.body;
 
     if (zone_id === undefined || planned_shots === undefined) {
-      return res.status(400).send("Zone ID and planned shots are required!");
+      return res.status(400).json({ message: "Zone ID and planned shots are required!" });
     }
 
     if (planned_shots <= 0 || typeof planned_shots !== "number") {
-      return res.status(400).send("Planned shots must be a positive number!");
+      return res.status(400).json({ message: "Planned shots must be a positive number!" });
     }
 
     const templateCheck = await pool.query(
@@ -947,7 +937,7 @@ app.post("/templates/:templateId/zones", authMiddleware, async (req, res) => {
     );
 
     if (templateCheck.rows.length === 0) {
-      return res.status(404).send("Template not found!");
+      return res.status(404).json({ message: "Template not found!" });
     }
 
     const zoneCheck = await pool.query(
@@ -956,7 +946,7 @@ app.post("/templates/:templateId/zones", authMiddleware, async (req, res) => {
     );
 
     if (zoneCheck.rows.length === 0) {
-      return res.status(404).send("Zone not found!");
+      return res.status(404).json({ message: "Zone not found!" });
     }
 
     const newTemplateZone = await pool.query(
@@ -982,7 +972,7 @@ app.post("/templates/:templateId/zones", authMiddleware, async (req, res) => {
     res.json(newTemplateZone.rows[0]);
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -997,7 +987,7 @@ app.get("/templates/:templateId/zones", authMiddleware, async (req, res) => {
     );
 
     if (templateCheck.rows.length === 0) {
-      return res.status(404).send("Template not found!");
+      return res.status(404).json({ message: "Template not found!" });
     }
 
     // x_position / y_position omogucuju prikaz zona na terenu
@@ -1020,7 +1010,7 @@ app.get("/templates/:templateId/zones", authMiddleware, async (req, res) => {
     );
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -1037,7 +1027,7 @@ app.put("/templates/:templateId", authMiddleware, async (req, res) => {
   );
 
   if (validationError) {
-    return res.status(400).send(validationError);
+    return res.status(400).json({ message: validationError });
   }
 
   const client = await pool.connect();
@@ -1065,7 +1055,7 @@ app.put("/templates/:templateId", authMiddleware, async (req, res) => {
 
     if (updatedTemplate.rows.length === 0) {
       await client.query("ROLLBACK");
-      return res.status(404).send("Template not found!");
+      return res.status(404).json({ message: "Template not found!" });
     }
 
     // Zone se zamjenjuju u cijelosti
@@ -1093,14 +1083,14 @@ app.put("/templates/:templateId", authMiddleware, async (req, res) => {
     console.error(err);
 
     if (err.code === "23503") {
-      return res.status(404).send("Zone not found!");
+      return res.status(404).json({ message: "Zone not found!" });
     }
 
     if (err.code === "23505") {
-      return res.status(400).send("Template with this name already exists!");
+      return res.status(400).json({ message: "Template with this name already exists!" });
     }
 
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   } finally {
     client.release();
   }
@@ -1120,14 +1110,14 @@ app.delete("/templates/:templateId", authMiddleware, async (req, res) => {
     );
 
     if (deletedTemplate.rows.length === 0) {
-      return res.status(404).send("Template not found!");
+      return res.status(404).json({ message: "Template not found!" });
     }
 
     res.json(deletedTemplate.rows[0]);
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -1149,7 +1139,7 @@ app.post("/templates/:templateId/duplicate", authMiddleware, async (req, res) =>
 
     if (source.rows.length === 0) {
       await client.query("ROLLBACK");
-      return res.status(404).send("Template not found!");
+      return res.status(404).json({ message: "Template not found!" });
     }
 
     const template = source.rows[0];
@@ -1198,7 +1188,7 @@ app.post("/templates/:templateId/duplicate", authMiddleware, async (req, res) =>
     await client.query("ROLLBACK");
 
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   } finally {
     client.release();
   }
@@ -1269,7 +1259,7 @@ app.get("/global-stats", authMiddleware, async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -1325,7 +1315,7 @@ app.get("/my-stats", authMiddleware, async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -1383,7 +1373,7 @@ app.get("/my-zone-stats", authMiddleware, async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -1468,7 +1458,7 @@ app.get("/recent-workouts", authMiddleware, async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -1483,7 +1473,7 @@ app.post("/forgot-password", async (req, res) => {
     );
 
     if (userResult.rows.length === 0) {
-      return res.status(404).send("User not found!");
+      return res.status(404).json({ message: "User not found!" });
     }
 
     const resetCode =
@@ -1520,7 +1510,7 @@ app.post("/forgot-password", async (req, res) => {
     res.send("Reset code sent!");
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -1536,26 +1526,26 @@ app.post("/verify-reset-code", async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).send("User not found!");
+      return res.status(404).json({ message: "User not found!" });
     }
 
     const user = result.rows[0];
 
     if (user.reset_code !== code) {
-      return res.status(400).send("Invalid code!");
+      return res.status(400).json({ message: "Invalid code!" });
     }
 
     if (
       !user.reset_code_expires ||
       new Date(user.reset_code_expires) < new Date()
     ) {
-      return res.status(400).send("Code expired!");
+      return res.status(400).json({ message: "Code expired!" });
     }
 
     res.send("Code verified!");
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -1573,20 +1563,20 @@ app.post("/reset-password", async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).send("User not found!");
+      return res.status(404).json({ message: "User not found!" });
     }
 
     const user = result.rows[0];
 
     if (user.reset_code !== code) {
-      return res.status(400).send("Invalid code!");
+      return res.status(400).json({ message: "Invalid code!" });
     }
 
     if (
       !user.reset_code_expires ||
       new Date(user.reset_code_expires) < new Date()
     ) {
-      return res.status(400).send("Code expired!");
+      return res.status(400).json({ message: "Code expired!" });
     }
 
     const hashedPassword =
@@ -1604,7 +1594,7 @@ app.post("/reset-password", async (req, res) => {
     res.send("Password reset successful!");
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -1654,7 +1644,7 @@ app.get("/all-trainings", authMiddleware, async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).send("Server error!");
+    res.status(500).json({ message: "Server error!" });
   }
 });
 
@@ -1889,13 +1879,13 @@ function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
-    return res.status(401).send("No token, authorization denied!");
+    return res.status(401).json({ message: "No token, authorization denied!" });
   }
 
   const token = authHeader.split(" ")[1];
 
   if (!token) {
-    return res.status(401).send("No token, authorization denied!");
+    return res.status(401).json({ message: "No token, authorization denied!" });
   }
 
   try {
@@ -1910,7 +1900,7 @@ function authMiddleware(req, res, next) {
 
   } catch (err) {
     console.error(err);
-    return res.status(403).send("Invalid token!");
+    return res.status(403).json({ message: "Invalid token!" });
   }
 }
 
