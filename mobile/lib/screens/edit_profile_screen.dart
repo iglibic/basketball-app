@@ -6,6 +6,8 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 
+import '../services/session.dart';
+
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
 
@@ -41,6 +43,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         Uri.parse("http://10.0.2.2:3000/me"),
         headers: {"Authorization": "Bearer $token"},
       );
+
+      if (!mounted) return;
+
+      if (await Session.handleUnauthorized(context, response)) return;
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -136,7 +142,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         headers: {"Authorization": "Bearer $token"},
       );
 
-      final data = jsonDecode(response.body);
+      if (!mounted) return;
+
+      if (await Session.handleUnauthorized(context, response)) return;
 
       if (response.statusCode == 200) {
         setState(() {
@@ -147,14 +155,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(data["message"] ?? 'Profile picture removed'),
+            content: Text(
+              Session.errorMessage(response, 'Profile picture removed'),
+            ),
             backgroundColor: Colors.green,
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(data["message"] ?? 'Could not remove picture'),
+            content: Text(
+              Session.errorMessage(response, 'Could not remove picture'),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -307,12 +319,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         }),
       );
 
-      final data = jsonDecode(response.body);
+      if (!mounted) return;
+
+      if (await Session.handleUnauthorized(context, response)) return;
 
       if (response.statusCode != 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(data["message"] ?? "Update failed"),
+            content: Text(Session.errorMessage(response, "Update failed")),
             backgroundColor: Colors.red,
           ),
         );

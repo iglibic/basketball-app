@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/session.dart';
 import 'main_navigation_screen.dart';
 import 'forgot_password_screen.dart';
 
@@ -69,7 +70,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 Expanded(
                   child: Text(
-                    response.body,
+                    Session.errorMessage(response, "Login failed."),
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w500,

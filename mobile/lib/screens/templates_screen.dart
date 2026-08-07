@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/session.dart';
 import '../widgets/bottom_sheets/template_details_sheet.dart';
 import 'template_editor_screen.dart';
 
@@ -39,6 +40,8 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
       );
 
       if (!mounted) return;
+
+      if (await Session.handleUnauthorized(context, response)) return;
 
       if (response.statusCode != 200) {
         setState(() {

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/session.dart';
 import 'welcome_screen.dart';
 import 'training_history_screen.dart';
 
@@ -58,9 +59,9 @@ class _HomeScreenState extends State<HomeScreen> {
         headers: {"Authorization": "Bearer $token"},
       );
 
-      print("TOKEN: $token");
-      print("STATUS: ${response.statusCode}");
-      print("BODY: ${response.body}");
+      if (!mounted) return;
+
+      if (await Session.handleUnauthorized(context, response)) return;
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -95,9 +96,9 @@ class _HomeScreenState extends State<HomeScreen> {
         headers: {"Authorization": "Bearer $token"},
       );
 
-      print("TOKEN: $token");
-      print("STATUS: ${response.statusCode}");
-      print("BODY: ${response.body}");
+      if (!mounted) return;
+
+      if (await Session.handleUnauthorized(context, response)) return;
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -123,6 +124,10 @@ class _HomeScreenState extends State<HomeScreen> {
         Uri.parse("http://10.0.2.2:3000/recent-workouts"),
         headers: {"Authorization": "Bearer $token"},
       );
+
+      if (!mounted) return;
+
+      if (await Session.handleUnauthorized(context, response)) return;
 
       if (response.statusCode == 200) {
         setState(() {

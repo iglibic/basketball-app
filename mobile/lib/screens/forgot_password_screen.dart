@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import '../services/session.dart';
 import 'verify_reset_code_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -42,7 +43,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       } else {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(response.body)));
+        ).showSnackBar(
+          SnackBar(
+            content: Text(
+              Session.errorMessage(response, "Could not send reset code."),
+            ),
+          ),
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(

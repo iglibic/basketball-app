@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/preset_position.dart';
 import '../../screens/workout_screen.dart';
+import '../../services/session.dart';
 
 /// Prikazuje zone predloska i akcije nad njim.
 /// Vraca "edit", "duplicate" ili "delete" roditelju, a workout pokrece sam.
@@ -43,6 +44,8 @@ class _TemplateDetailsSheetState extends State<TemplateDetailsSheet> {
       );
 
       if (!mounted) return;
+
+      if (await Session.handleUnauthorized(context, response)) return;
 
       if (response.statusCode != 200) {
         setState(() {

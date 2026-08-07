@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import 'dart:convert';
 
+import '../services/session.dart';
 import 'welcome_screen.dart';
 import 'change_password_screen.dart';
 import 'about_screen.dart';
@@ -46,10 +47,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         headers: {"Authorization": "Bearer $token"},
       );
 
-      if (response.statusCode == 401 || response.statusCode == 403) {
-        await logout();
-        return;
-      }
+      if (!mounted) return;
+
+      if (await Session.handleUnauthorized(context, response)) return;
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -77,10 +77,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         headers: {"Authorization": "Bearer $token"},
       );
 
-      if (response.statusCode == 401 || response.statusCode == 403) {
-        await logout();
-        return;
-      }
+      if (!mounted) return;
+
+      if (await Session.handleUnauthorized(context, response)) return;
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

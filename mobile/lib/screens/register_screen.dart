@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import '../services/session.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -144,7 +145,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           SnackBar(
             backgroundColor: Colors.red.shade700,
             behavior: SnackBarBehavior.floating,
-            content: Text(response.body),
+            content: Text(
+              Session.errorMessage(response, "Registration failed."),
+            ),
           ),
         );
       }

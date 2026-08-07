@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/session.dart';
+
 /// Kreiranje i uredivanje predloska.
 /// Ako je [template] proslijeden, ekran radi u nacinu uredivanja.
 class TemplateEditorScreen extends StatefulWidget {
@@ -63,6 +65,8 @@ class _TemplateEditorScreenState extends State<TemplateEditorScreen> {
       );
 
       if (!mounted) return;
+
+      if (await Session.handleUnauthorized(context, zonesResponse)) return;
 
       if (zonesResponse.statusCode != 200) {
         setState(() {
@@ -177,13 +181,13 @@ class _TemplateEditorScreenState extends State<TemplateEditorScreen> {
 
       if (!mounted) return;
 
+      if (await Session.handleUnauthorized(context, response)) return;
+
       if (response.statusCode != 200) {
         setState(() => isSaving = false);
 
         _showError(
-          response.body.isNotEmpty
-              ? response.body
-              : "Could not save template.",
+          Session.errorMessage(response, "Could not save template."),
         );
 
         return;

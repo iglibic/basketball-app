@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import '../services/session.dart';
 import 'login_screen.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
@@ -102,7 +103,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       } else {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(response.body)));
+        ).showSnackBar(
+          SnackBar(
+            content: Text(
+              Session.errorMessage(response, "Could not reset password."),
+            ),
+          ),
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(

@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/position_result.dart';
 import '../models/preset_position.dart';
+import '../services/session.dart';
 import '../widgets/court/basketball_court.dart';
 import 'training_summary_screen.dart';
 
@@ -276,15 +277,15 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
 
       if (!mounted) return;
 
+      if (await Session.handleUnauthorized(context, response)) return;
+
       if (response.statusCode != 200) {
         setState(() => _isSaving = false);
 
-        if (response.statusCode == 401 || response.statusCode == 403) {
-          _showError("Your session expired. Please log in again.");
-          return;
-        }
+        _showError(
+          Session.errorMessage(response, "Could not save workout."),
+        );
 
-        _showError("Could not save workout. ${response.body}");
         return;
       }
 

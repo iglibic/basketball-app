@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/session.dart';
 import '../widgets/court/shot_chart_court.dart';
 
 class StatsScreen extends StatefulWidget {
@@ -59,6 +60,12 @@ class _StatsScreenState extends State<StatsScreen> {
           headers: headers,
         ),
       ]);
+
+      if (!mounted) return;
+
+      for (final response in responses) {
+        if (await Session.handleUnauthorized(context, response)) return;
+      }
 
       if (!mounted) return;
 

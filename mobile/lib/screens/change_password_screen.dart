@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
+import '../services/session.dart';
+
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
 
@@ -96,7 +98,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         }),
       );
 
-      final data = jsonDecode(response.body);
+      if (!mounted) return;
+
+      if (await Session.handleUnauthorized(context, response)) return;
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -113,7 +117,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         Navigator.pop(context);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data["message"]), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(
+              Session.errorMessage(response, "Could not change password."),
+            ),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (e) {

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import '../services/session.dart';
 import 'reset_password_screen.dart';
 
 class VerifyResetCodeScreen extends StatefulWidget {
@@ -49,7 +50,13 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
       } else {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(response.body)));
+        ).showSnackBar(
+          SnackBar(
+            content: Text(
+              Session.errorMessage(response, "Could not verify code."),
+            ),
+          ),
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(
