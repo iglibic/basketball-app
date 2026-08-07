@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'custom_workout_screen.dart';
+import 'templates_screen.dart';
 
 class NewWorkoutScreen extends StatelessWidget {
   const NewWorkoutScreen({super.key});
@@ -118,7 +119,12 @@ class NewWorkoutScreen extends StatelessWidget {
 
               GestureDetector(
                 onTap: () {
-                  // TODO: TemplateWorkoutScreen
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TemplatesScreen(),
+                    ),
+                  );
                 },
                 child: Container(
                   width: double.infinity,

@@ -15,10 +15,14 @@ class WorkoutScreen extends StatefulWidget {
   final List<PresetPosition> positions;
   final String workoutName;
 
+  /// Postavljen samo kada je trening pokrenut iz predloska.
+  final int? templateId;
+
   const WorkoutScreen({
     super.key,
     required this.positions,
     this.workoutName = "",
+    this.templateId,
   });
 
   @override
@@ -256,6 +260,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           "training_name": widget.workoutName.isEmpty
               ? "Custom Workout"
               : widget.workoutName,
+          "template_id": widget.templateId,
           "duration_minutes": duration.inMinutes,
           "shots": shotResults
               .map(
@@ -593,6 +598,20 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
               fontWeight: FontWeight.bold,
             ),
           ),
+
+          // Kod treninga iz predloska prikazujemo planirani broj sutova
+          if (widget.templateId != null) ...[
+            const SizedBox(height: 6),
+
+            Text(
+              "Target: ${widget.positions[currentPosition].goalShots} shots",
+              style: const TextStyle(
+                color: Color(0xFF7C5CFF),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
 
           const SizedBox(height: 24),
 
