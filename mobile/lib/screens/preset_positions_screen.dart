@@ -167,7 +167,7 @@ class _PresetPositionsScreenState extends State<PresetPositionsScreen> {
   ];
 
   List<PresetPosition> get filteredPositions {
-    return positions.where((position) {
+    final filtered = positions.where((position) {
       final matchesCategory =
           selectedCategory == "All" || position.category == selectedCategory;
 
@@ -177,6 +177,16 @@ class _PresetPositionsScreenState extends State<PresetPositionsScreen> {
 
       return matchesCategory && matchesSearch;
     }).toList();
+
+    if (selectedSort == "Name (A-Z)") {
+      filtered.sort((a, b) => a.name.compareTo(b.name));
+    }
+
+    if (selectedSort == "Category") {
+      filtered.sort((a, b) => a.category.compareTo(b.category));
+    }
+
+    return filtered;
   }
 
   Widget _categoryChip(String text) {
@@ -207,37 +217,6 @@ class _PresetPositionsScreenState extends State<PresetPositionsScreen> {
         ),
       ),
     );
-  }
-
-  Widget _buildSortInfo() {
-    switch (selectedSort) {
-      case "Highest FG%":
-        return const Text(
-          "FG% • 47%",
-          style: TextStyle(color: Colors.white54, fontSize: 12),
-        );
-
-      case "Lowest FG%":
-        return const Text(
-          "FG% • 18%",
-          style: TextStyle(color: Colors.white54, fontSize: 12),
-        );
-
-      case "Most Shots":
-        return const Text(
-          "Shots • 542",
-          style: TextStyle(color: Colors.white54, fontSize: 12),
-        );
-
-      case "Recent":
-        return const Text(
-          "2 days ago",
-          style: TextStyle(color: Colors.white54, fontSize: 12),
-        );
-
-      default:
-        return const SizedBox.shrink();
-    }
   }
 
   @override
@@ -273,13 +252,9 @@ class _PresetPositionsScreenState extends State<PresetPositionsScreen> {
               },
 
               itemBuilder: (context) {
-                final options = [
-                  "Court Order",
-                  "Highest FG%",
-                  "Lowest FG%",
-                  "Most Shots",
-                  "Last Used",
-                ];
+                // Ponudeno je samo ono sto se stvarno moze poredati
+                // s podacima koje ovaj ekran ima.
+                final options = ["Court Order", "Name (A-Z)", "Category"];
 
                 return options.map((option) {
                   return PopupMenuItem<String>(
@@ -471,8 +446,6 @@ class _PresetPositionsScreenState extends State<PresetPositionsScreen> {
                                         ),
 
                                         const Spacer(),
-
-                                        _buildSortInfo(),
                                       ],
                                     ),
                                   ],
