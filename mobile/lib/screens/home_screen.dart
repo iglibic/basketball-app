@@ -31,11 +31,23 @@ class _HomeScreenState extends State<HomeScreen> {
   String firstName = "";
   String lastName = "";
 
-  String getProfileImageUrlWithBust() {
-    if (profileImageUrl == null || profileImageUrl!.isEmpty) return "";
+  /// Postavlja se jednom po ucitavanju profila.
+  /// Da je racunat u build(), slika bi se ponovno preuzimala na svaki rebuild.
+  int imageVersion = 0;
+
+  bool get hasProfileImage {
+    return profileImageUrl != null && profileImageUrl!.isNotEmpty;
+  }
+
+  String getProfileImageUrl() {
+    if (!hasProfileImage) return "";
+
     final base = profileImageUrl!;
-    final url = base.startsWith("http") ? base : "http://10.0.2.2:3000$base";
-    return "$url?t=${DateTime.now().millisecondsSinceEpoch}";
+    final url = base.startsWith("http")
+        ? base
+        : "http://10.0.2.2:3000$base";
+
+    return "$url?v=$imageVersion";
   }
 
   bool isLoading = true;
@@ -107,6 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
           firstName = data["first_name"] ?? "";
           lastName = data["last_name"] ?? "";
           profileImageUrl = data["profile_image"];
+          imageVersion = DateTime.now().millisecondsSinceEpoch;
         });
       }
     } catch (e) {
@@ -158,6 +171,19 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
 
     return "${months[date.month - 1]} ${date.day}, ${date.year}";
+  }
+
+  Widget _buildInitials() {
+    return Center(
+      child: Text(
+        getInitials(),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
   }
 
   String getInitials() {
@@ -215,8 +241,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
 
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
+          // Sadrzaj se skrola jer na nizim ekranima i s vise treninga
+          // fiksni Column ne stane u raspolozivu visinu.
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 110),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -264,21 +292,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
 
                         child: ClipOval(
-                          child: profileImageUrl != null
+                          child: hasProfileImage
                               ? Image.network(
-                                  getProfileImageUrlWithBust(),
+                                  getProfileImageUrl(),
                                   fit: BoxFit.cover,
+                                  errorBuilder: (_, _, _) {
+                                    return _buildInitials();
+                                  },
                                 )
-                              : Center(
-                                  child: Text(
-                                    getInitials(),
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
+                              : _buildInitials(),
                         ),
                       ),
                     ),
