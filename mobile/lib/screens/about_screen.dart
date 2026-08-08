@@ -94,7 +94,7 @@ class AboutScreen extends StatelessWidget {
                   TextSpan(
                     text: "IQ",
                     style: GoogleFonts.outfit(
-                      color: const Color(0xFF6240CD),
+                      color: const Color(0xFF7C5CFF),
                       fontSize: 48,
                       fontWeight: FontWeight.w700,
                     ),

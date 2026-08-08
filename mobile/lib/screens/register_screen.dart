@@ -40,7 +40,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (passwordController.text != repeatPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: Colors.red.shade700,
+          backgroundColor: Color(0xFFD32F2F),
           behavior: SnackBarBehavior.floating,
           content: const Text("Passwords do not match."),
         ),
@@ -55,7 +55,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!regex.hasMatch(passwordController.text)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: Colors.red.shade700,
+          backgroundColor: Color(0xFFD32F2F),
           behavior: SnackBarBehavior.floating,
           content: const Text(
             "Password must contain at least 8 characters, one uppercase letter, one number and one special character.",
@@ -72,7 +72,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!emailRegex.hasMatch(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: Colors.red.shade700,
+          backgroundColor: Color(0xFFD32F2F),
           behavior: SnackBarBehavior.floating,
           content: const Text("Please enter a valid email address."),
         ),
@@ -83,7 +83,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (nicknameController.text.trim().length < 4) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: Colors.red.shade700,
+          backgroundColor: Color(0xFFD32F2F),
           behavior: SnackBarBehavior.floating,
           content: const Text("Nickname must contain at least 4 characters."),
         ),
@@ -95,7 +95,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         lastNameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: Colors.red.shade700,
+          backgroundColor: Color(0xFFD32F2F),
           behavior: SnackBarBehavior.floating,
           content: const Text("First name and last name are required."),
         ),
@@ -143,7 +143,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: Colors.red.shade700,
+            backgroundColor: Color(0xFFD32F2F),
             behavior: SnackBarBehavior.floating,
             content: Text(
               Session.errorMessage(response, "Registration failed."),
@@ -154,7 +154,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: Colors.red.shade700,
+          backgroundColor: Color(0xFFD32F2F),
           behavior: SnackBarBehavior.floating,
           content: Text("Error: $e"),
         ),
@@ -314,7 +314,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   height: 60,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4F8DFD),
+                      backgroundColor: const Color(0xFF7C5CFF),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(35),
                       ),
@@ -342,7 +342,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     },
                     child: const Text(
                       "Already have an account? Log In",
-                      style: TextStyle(color: Color(0xFF4F8DFD)),
+                      style: TextStyle(color: Color(0xFF7C5CFF)),
                     ),
                   ),
                 ),

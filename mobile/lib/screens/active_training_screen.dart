@@ -133,7 +133,7 @@ class _ActiveTrainingScreenState extends State<ActiveTrainingScreen> {
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              backgroundColor: Colors.red.shade700,
+              backgroundColor: Color(0xFFD32F2F),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),

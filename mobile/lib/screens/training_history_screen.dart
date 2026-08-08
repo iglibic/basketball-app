@@ -160,7 +160,7 @@ class _TrainingHistoryScreenState extends State<TrainingHistoryScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red.shade700,
+        backgroundColor: Color(0xFFD32F2F),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -418,7 +418,7 @@ class _TrainingHistoryScreenState extends State<TrainingHistoryScreen> {
         padding: const EdgeInsets.only(right: 24),
         alignment: Alignment.centerRight,
         decoration: BoxDecoration(
-          color: Colors.red.shade700,
+          color: Color(0xFFD32F2F),
           borderRadius: BorderRadius.circular(12),
         ),
         child: const Icon(Icons.delete_outline, color: Colors.white),

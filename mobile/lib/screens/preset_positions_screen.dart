@@ -222,7 +222,7 @@ class _PresetPositionsScreenState extends State<PresetPositionsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF090E1F),
+      backgroundColor: const Color(0xFF0D1224),
 
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -292,7 +292,7 @@ class _PresetPositionsScreenState extends State<PresetPositionsScreen> {
                 ),
                 child: const Icon(
                   Icons.swap_vert_rounded,
-                  color: Color(0xFFB026FF),
+                  color: Color(0xFF7C5CFF),
                   size: 24,
                 ),
               ),
@@ -506,7 +506,7 @@ class _PresetPositionsScreenState extends State<PresetPositionsScreen> {
               Container(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF090E1F),
+                  color: const Color(0xFF0D1224),
                   border: Border(
                     top: BorderSide(
                       color: Colors.white.withValues(alpha: 0.06),

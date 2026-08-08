@@ -167,7 +167,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             content: Text(
               Session.errorMessage(response, 'Could not remove picture'),
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: Color(0xFFD32F2F),
           ),
         );
       }
@@ -176,7 +176,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Failed to remove profile picture'),
-          backgroundColor: Colors.red,
+          backgroundColor: Color(0xFFD32F2F),
         ),
       );
     }
@@ -190,7 +190,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     final action = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: const Color(0xFF171C33),
+      backgroundColor: const Color(0xFF1A2238),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -237,7 +237,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         return SafeArea(
           child: Container(
             decoration: const BoxDecoration(
-              color: Color(0xFF11172F),
+              color: Color(0xFF1A2238),
               borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
             ),
             child: Column(
@@ -327,7 +327,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(Session.errorMessage(response, "Update failed")),
-            backgroundColor: Colors.red,
+            backgroundColor: Color(0xFFD32F2F),
           ),
         );
         return;
@@ -355,7 +355,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(uploadData["message"] ?? "Image upload failed"),
-              backgroundColor: Colors.red,
+              backgroundColor: Color(0xFFD32F2F),
             ),
           );
           return;
@@ -388,7 +388,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       barrierDismissible: false,
       builder: (context) {
         return Dialog(
-          backgroundColor: const Color(0xFF171C33),
+          backgroundColor: const Color(0xFF1A2238),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(22),
           ),
@@ -517,7 +517,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           padding: EdgeInsets.zero,
           backgroundColor: selected
               ? const Color(0xFF7C5CFF)
-              : const Color(0xFF2A3354),
+              : const Color(0xFF252E48),
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -551,7 +551,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           padding: EdgeInsets.zero,
           backgroundColor: selected
               ? const Color(0xFF7C5CFF)
-              : const Color(0xFF1F2640),
+              : const Color(0xFF252E48),
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),

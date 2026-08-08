@@ -80,7 +80,7 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
       SnackBar(
         content: Text(message),
         backgroundColor: isError
-            ? Colors.red.shade700
+            ? Color(0xFFD32F2F)
             : const Color(0xFF00D26A),
         behavior: SnackBarBehavior.floating,
       ),
@@ -238,7 +238,7 @@ class _TemplatesScreenState extends State<TemplatesScreen> {
       ),
 
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF7C4DFF),
+        backgroundColor: const Color(0xFF7C5CFF),
         foregroundColor: Colors.white,
         onPressed: () => openEditor(),
         icon: const Icon(Icons.add),

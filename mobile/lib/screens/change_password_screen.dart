@@ -34,7 +34,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Enter current password!"),
-          backgroundColor: Colors.red,
+          backgroundColor: Color(0xFFD32F2F),
         ),
       );
       return;
@@ -44,7 +44,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Enter new password!"),
-          backgroundColor: Colors.red,
+          backgroundColor: Color(0xFFD32F2F),
         ),
       );
       return;
@@ -54,7 +54,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Passwords do not match!"),
-          backgroundColor: Colors.red,
+          backgroundColor: Color(0xFFD32F2F),
         ),
       );
       return;
@@ -66,7 +66,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("All fields are required!"),
-          backgroundColor: Colors.red,
+          backgroundColor: Color(0xFFD32F2F),
         ),
       );
       return;
@@ -76,7 +76,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Passwords do not match!"),
-          backgroundColor: Colors.red,
+          backgroundColor: Color(0xFFD32F2F),
         ),
       );
       return;
@@ -121,7 +121,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             content: Text(
               Session.errorMessage(response, "Could not change password."),
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: Color(0xFFD32F2F),
           ),
         );
       }
@@ -129,7 +129,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Something went wrong"),
-          backgroundColor: Colors.red,
+          backgroundColor: Color(0xFFD32F2F),
         ),
       );
     }

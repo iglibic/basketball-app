@@ -38,7 +38,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     if (!regex.hasMatch(password)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: Colors.red.shade700,
+          backgroundColor: Color(0xFFD32F2F),
           content: const Text(
             "Password must contain at least 8 characters, one uppercase letter, one number and one special character.",
           ),
@@ -235,7 +235,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               child: ElevatedButton(
                 onPressed: isLoading ? null : resetPassword,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4F8DFD),
+                  backgroundColor: const Color(0xFF7C5CFF),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(35),
                   ),

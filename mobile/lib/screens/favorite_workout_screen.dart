@@ -211,7 +211,7 @@ class _FavoriteWorkoutsScreenState extends State<FavoriteWorkoutsScreen> {
               ),
               child: const Icon(
                 Icons.filter_alt_outlined,
-                color: Color(0xFFB026FF),
+                color: Color(0xFF7C5CFF),
                 size: 24,
               ),
             ),

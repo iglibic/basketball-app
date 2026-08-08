@@ -115,7 +115,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                         const Text(
                                           "72%",
                                           style: TextStyle(
-                                            color: Color(0xFF3a7ff3),
+                                            color: Color(0xFF7C5CFF),
                                             fontSize: 28,
                                             fontWeight: FontWeight.bold,
                                           ),
@@ -265,7 +265,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   height: currentPage == index ? 8 : 6,
                   decoration: BoxDecoration(
                     color: currentPage == index
-                        ? const Color(0xFF2870f3)
+                        ? const Color(0xFF7C5CFF)
                         : Colors.white24,
                     shape: BoxShape.circle,
                   ),
@@ -282,7 +282,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 height: 62,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2870f3),
+                    backgroundColor: const Color(0xFF7C5CFF),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(35),
                     ),
@@ -319,7 +319,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               child: const Text(
                 "Log In",
                 style: TextStyle(
-                  color: Color(0xFF2870f3),
+                  color: Color(0xFF7C5CFF),
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
@@ -343,7 +343,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       width: 10,
       height: height,
       decoration: BoxDecoration(
-        color: const Color(0xFF4F8DFD),
+        color: const Color(0xFF7C5CFF),
         borderRadius: BorderRadius.circular(20),
       ),
     );

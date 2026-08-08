@@ -120,7 +120,7 @@ class _TemplateEditorScreenState extends State<TemplateEditorScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red.shade700,
+        backgroundColor: Color(0xFFD32F2F),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -548,7 +548,7 @@ class _TemplateEditorScreenState extends State<TemplateEditorScreen> {
               onPressed: (isSaving || hasInvalidZone) ? null : saveTemplate,
               style: ElevatedButton.styleFrom(
                 elevation: 0,
-                backgroundColor: const Color(0xFF7C4DFF),
+                backgroundColor: const Color(0xFF7C5CFF),
                 foregroundColor: Colors.white,
                 disabledBackgroundColor: const Color(0xFF121A33),
                 disabledForegroundColor: const Color(0xFF7B83A5),

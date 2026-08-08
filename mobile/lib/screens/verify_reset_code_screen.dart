@@ -131,7 +131,7 @@ class _VerifyResetCodeScreenState extends State<VerifyResetCodeScreen> {
               child: ElevatedButton(
                 onPressed: isLoading ? null : verifyCode,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4F8DFD),
+                  backgroundColor: const Color(0xFF7C5CFF),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(35),
                   ),

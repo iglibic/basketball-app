@@ -79,7 +79,7 @@ class _CustomWorkoutScreenState extends State<CustomWorkoutScreen> {
 
                 ListTile(
                   leading: const CircleAvatar(
-                    backgroundColor: Color(0xFF7C4DFF),
+                    backgroundColor: Color(0xFF7C5CFF),
                     child: Icon(Icons.place_outlined, color: Colors.white),
                   ),
                   title: const Text(
@@ -122,7 +122,7 @@ class _CustomWorkoutScreenState extends State<CustomWorkoutScreen> {
 
                 ListTile(
                   leading: const CircleAvatar(
-                    backgroundColor: Color(0xFF7C4DFF),
+                    backgroundColor: Color(0xFF7C5CFF),
                     child: Icon(Icons.touch_app_outlined, color: Colors.white),
                   ),
                   title: const Text(
@@ -159,12 +159,12 @@ class _CustomWorkoutScreenState extends State<CustomWorkoutScreen> {
           width: 80,
           height: 80,
           decoration: BoxDecoration(
-            color: const Color(0xFF7C4DFF).withValues(alpha: 0.15),
+            color: const Color(0xFF7C5CFF).withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
           child: const Icon(
             Icons.assignment_outlined,
-            color: Color(0xFF7C4DFF),
+            color: Color(0xFF7C5CFF),
             size: 42,
           ),
         ),
@@ -201,7 +201,7 @@ class _CustomWorkoutScreenState extends State<CustomWorkoutScreen> {
             ),
             style: ElevatedButton.styleFrom(
               elevation: 0,
-              backgroundColor: const Color(0xFF7C4DFF),
+              backgroundColor: const Color(0xFF7C5CFF),
               foregroundColor: Colors.white,
               minimumSize: const Size.fromHeight(56),
               shape: RoundedRectangleBorder(
@@ -306,9 +306,9 @@ class _CustomWorkoutScreenState extends State<CustomWorkoutScreen> {
             ),
 
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF7C4DFF),
+              foregroundColor: const Color(0xFF7C5CFF),
 
-              side: const BorderSide(color: Color(0xFF7C4DFF)),
+              side: const BorderSide(color: Color(0xFF7C5CFF)),
 
               minimumSize: const Size.fromHeight(54),
 
@@ -376,7 +376,7 @@ class _CustomWorkoutScreenState extends State<CustomWorkoutScreen> {
       },
 
       child: Scaffold(
-        backgroundColor: const Color(0xFF090E1F),
+        backgroundColor: const Color(0xFF0D1224),
 
         appBar: AppBar(
           backgroundColor: Colors.transparent,
@@ -420,7 +420,7 @@ class _CustomWorkoutScreenState extends State<CustomWorkoutScreen> {
 
                     suffixIcon: const Icon(
                       Icons.edit_outlined,
-                      color: Color(0xFF7C4DFF),
+                      color: Color(0xFF7C5CFF),
                     ),
 
                     filled: true,
@@ -459,8 +459,8 @@ class _CustomWorkoutScreenState extends State<CustomWorkoutScreen> {
                                 borderRadius: BorderRadius.circular(14),
                                 gradient: const LinearGradient(
                                   colors: [
-                                    Color(0xFF6D3EFF),
-                                    Color(0xFF8A4DFF),
+                                    Color(0xFF7C5CFF),
+                                    Color(0xFF7C5CFF),
                                   ],
                                 ),
                               ),
@@ -602,7 +602,7 @@ class _CustomWorkoutScreenState extends State<CustomWorkoutScreen> {
 
                     style: ElevatedButton.styleFrom(
                       elevation: 0,
-                      backgroundColor: const Color(0xFF7C4DFF),
+                      backgroundColor: const Color(0xFF7C5CFF),
                       foregroundColor: Colors.white,
                       disabledBackgroundColor: const Color(0xFF121A33),
                       disabledForegroundColor: const Color(0xFF7B83A5),

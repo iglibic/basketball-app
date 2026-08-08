@@ -225,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.red,
+        backgroundColor: Color(0xFFD32F2F),
         onPressed: logout,
         child: const Icon(Icons.logout),
       ),

@@ -115,7 +115,7 @@ class _TemplateDetailsSheetState extends State<TemplateDetailsSheet> {
     return SafeArea(
       child: Container(
         decoration: const BoxDecoration(
-          color: Color(0xFF11172F),
+          color: Color(0xFF1A2238),
           borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
         ),
         padding: const EdgeInsets.fromLTRB(24, 10, 24, 20),
@@ -265,7 +265,7 @@ class _TemplateDetailsSheetState extends State<TemplateDetailsSheet> {
                   ),
                   style: ElevatedButton.styleFrom(
                     elevation: 0,
-                    backgroundColor: const Color(0xFF7C4DFF),
+                    backgroundColor: const Color(0xFF7C5CFF),
                     foregroundColor: Colors.white,
                     disabledBackgroundColor: const Color(0xFF121A33),
                     disabledForegroundColor: const Color(0xFF7B83A5),

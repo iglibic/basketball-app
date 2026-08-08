@@ -205,7 +205,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: Colors.red.shade700,
+        backgroundColor: Color(0xFFD32F2F),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         content: Text(message),
@@ -332,7 +332,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       },
 
       child: Scaffold(
-        backgroundColor: const Color(0xFF090E1F),
+        backgroundColor: const Color(0xFF0D1224),
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(20),

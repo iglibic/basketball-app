@@ -69,7 +69,7 @@ class NewWorkoutScreen extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 24,
-                        backgroundColor: Color(0xFF7C4DFF),
+                        backgroundColor: Color(0xFF7C5CFF),
                         child: Icon(
                           Icons.description_outlined,
                           color: Colors.white,
@@ -140,7 +140,7 @@ class NewWorkoutScreen extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 24,
-                        backgroundColor: Color(0xFF7C4DFF),
+                        backgroundColor: Color(0xFF7C5CFF),
                         child: Icon(
                           Icons.description_outlined,
                           color: Colors.white,
@@ -220,7 +220,7 @@ class NewWorkoutScreen extends StatelessWidget {
                       ),
                       child: const Icon(
                         Icons.star_rounded,
-                        color: Color(0xFF7C4DFF),
+                        color: Color(0xFF7C5CFF),
                         size: 36,
                       ),
                     ),
@@ -257,8 +257,8 @@ class NewWorkoutScreen extends StatelessWidget {
                           // TODO: Open Training History
                         },
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFF7C4DFF)),
-                          foregroundColor: const Color(0xFF7C4DFF),
+                          side: const BorderSide(color: Color(0xFF7C5CFF)),
+                          foregroundColor: const Color(0xFF7C5CFF),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
